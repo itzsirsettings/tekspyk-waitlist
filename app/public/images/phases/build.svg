@@ -1,0 +1,18 @@
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Blocks stacking into a tower, one block being placed">
+  <rect width="480" height="480" rx="40" fill="oklch(93% 0.05 160)"/>
+
+  <rect x="150" y="290" width="180" height="70" rx="16" fill="oklch(40% 0.18 160)"/>
+  <rect x="164" y="228" width="152" height="62" rx="16" fill="white" stroke="oklch(40% 0.18 160)" stroke-width="3"/>
+  <rect x="178" y="168" width="124" height="60" rx="16" fill="oklch(40% 0.18 160 / 0.28)" stroke="oklch(40% 0.18 160)" stroke-width="3"/>
+
+  <g transform="translate(240,100)">
+    <rect x="-56" y="-28" width="112" height="56" rx="14" fill="oklch(65% 0.2 30)" stroke="oklch(40% 0.18 160)" stroke-width="3"/>
+    <line x1="-56" y1="30" x2="-56" y2="60" stroke="oklch(40% 0.18 160)" stroke-width="2" stroke-dasharray="4 6"/>
+    <line x1="56" y1="30" x2="56" y2="60" stroke="oklch(40% 0.18 160)" stroke-width="2" stroke-dasharray="4 6"/>
+  </g>
+
+  <g transform="translate(370,150)">
+    <circle r="34" fill="white" stroke="oklch(40% 0.18 160)" stroke-width="3"/>
+    <path d="M-10 6 L-2 14 L14 -8" fill="none" stroke="oklch(40% 0.18 160)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

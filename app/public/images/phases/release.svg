@@ -1,0 +1,19 @@
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Git branch diagram merging into a tagged release">
+  <rect width="480" height="480" rx="40" fill="oklch(93% 0.05 350)"/>
+
+  <path d="M140 380 C140 300, 140 260, 140 220" fill="none" stroke="oklch(40% 0.18 350)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M140 220 C140 160, 260 200, 300 140" fill="none" stroke="oklch(40% 0.18 350)" stroke-width="6" stroke-linecap="round" opacity="0.45"/>
+  <path d="M140 220 C140 160, 240 140, 300 100" fill="none" stroke="oklch(40% 0.18 350)" stroke-width="6" stroke-linecap="round"/>
+
+  <circle cx="140" cy="380" r="16" fill="white" stroke="oklch(40% 0.18 350)" stroke-width="5"/>
+  <circle cx="140" cy="300" r="16" fill="white" stroke="oklch(40% 0.18 350)" stroke-width="5"/>
+  <circle cx="140" cy="220" r="18" fill="oklch(40% 0.18 350)" stroke="white" stroke-width="4"/>
+  <circle cx="300" cy="140" r="16" fill="white" stroke="oklch(40% 0.18 350)" stroke-width="5" opacity="0.6"/>
+  <circle cx="300" cy="100" r="20" fill="oklch(40% 0.18 350)" stroke="white" stroke-width="5"/>
+
+  <g transform="translate(340,90)">
+    <path d="M0 0 L64 0 L84 20 L64 40 L0 40 Z" fill="white" stroke="oklch(40% 0.18 350)" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="18" cy="20" r="6" fill="oklch(40% 0.18 350)"/>
+    <text x="40" y="26" font-family="monospace" font-size="18" fill="oklch(40% 0.18 350)" text-anchor="middle">v2.0</text>
+  </g>
+</svg>

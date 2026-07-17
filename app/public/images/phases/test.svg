@@ -1,0 +1,27 @@
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Checklist with passing and failing items and a pass badge">
+  <rect width="480" height="480" rx="40" fill="oklch(93% 0.05 30)"/>
+  <rect x="76" y="90" width="300" height="290" rx="22" fill="white" stroke="oklch(40% 0.18 30)" stroke-width="3"/>
+
+  <g>
+    <circle cx="112" cy="140" r="14" fill="oklch(65% 0.2 160)"/>
+    <path d="M105 140 L111 146 L121 132" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="140" y="132" width="180" height="16" rx="8" fill="oklch(40% 0.18 30 / 0.5)"/>
+
+    <circle cx="112" cy="192" r="14" fill="oklch(65% 0.2 160)"/>
+    <path d="M105 192 L111 198 L121 184" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="140" y="184" width="150" height="16" rx="8" fill="oklch(40% 0.18 30 / 0.5)"/>
+
+    <circle cx="112" cy="244" r="14" fill="oklch(65% 0.22 20)"/>
+    <path d="M105 237 L119 251 M119 237 L105 251" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <rect x="140" y="236" width="200" height="16" rx="8" fill="oklch(40% 0.18 30 / 0.5)"/>
+
+    <circle cx="112" cy="296" r="14" fill="oklch(65% 0.2 160)"/>
+    <path d="M105 296 L111 302 L121 288" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="140" y="288" width="165" height="16" rx="8" fill="oklch(40% 0.18 30 / 0.5)"/>
+  </g>
+
+  <g transform="translate(370,360)">
+    <circle r="46" fill="oklch(40% 0.18 30)" stroke="white" stroke-width="5"/>
+    <path d="M-16 0 L-4 14 L20 -14" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

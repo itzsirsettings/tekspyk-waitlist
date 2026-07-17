@@ -1,0 +1,21 @@
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Wireframe browser window with a cursor and a color palette">
+  <rect width="480" height="480" rx="40" fill="oklch(93% 0.05 300)"/>
+  <rect x="66" y="84" width="348" height="270" rx="20" fill="white" stroke="oklch(40% 0.18 300)" stroke-width="3"/>
+  <rect x="66" y="84" width="348" height="40" rx="20" fill="oklch(40% 0.18 300 / 0.12)"/>
+  <circle cx="92" cy="104" r="6" fill="oklch(40% 0.18 300)" opacity="0.5"/>
+  <circle cx="114" cy="104" r="6" fill="oklch(40% 0.18 300)" opacity="0.3"/>
+  <circle cx="136" cy="104" r="6" fill="oklch(40% 0.18 300)" opacity="0.15"/>
+
+  <rect x="90" y="148" width="300" height="70" rx="12" fill="oklch(40% 0.18 300 / 0.14)"/>
+  <rect x="90" y="232" width="140" height="90" rx="12" fill="oklch(40% 0.18 300)"/>
+  <rect x="240" y="232" width="150" height="42" rx="10" fill="oklch(40% 0.18 300 / 0.14)"/>
+  <rect x="240" y="282" width="150" height="40" rx="10" fill="oklch(40% 0.18 300 / 0.14)"/>
+
+  <circle cx="120" cy="392" r="16" fill="oklch(40% 0.18 300)"/>
+  <circle cx="156" cy="392" r="16" fill="oklch(65% 0.2 262)"/>
+  <circle cx="192" cy="392" r="16" fill="oklch(93% 0.05 300)" stroke="oklch(40% 0.18 300)" stroke-width="3"/>
+
+  <g transform="translate(352,340)">
+    <path d="M0 0 L0 46 L12 34 L20 52 L28 48 L20 30 L34 30 Z" fill="oklch(40% 0.18 300)" stroke="white" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+</svg>

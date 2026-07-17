@@ -1,0 +1,25 @@
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Server rack with status lights and an uptime gauge">
+  <rect width="480" height="480" rx="40" fill="oklch(93% 0.05 200)"/>
+
+  <rect x="86" y="120" width="220" height="240" rx="18" fill="white" stroke="oklch(38% 0.17 200)" stroke-width="3"/>
+  <g>
+    <rect x="106" y="146" width="180" height="50" rx="10" fill="oklch(38% 0.17 200 / 0.1)"/>
+    <circle cx="126" cy="171" r="7" fill="oklch(65% 0.2 160)"/>
+    <rect x="150" y="164" width="110" height="14" rx="7" fill="oklch(38% 0.17 200)" opacity="0.4"/>
+
+    <rect x="106" y="206" width="180" height="50" rx="10" fill="oklch(38% 0.17 200 / 0.1)"/>
+    <circle cx="126" cy="231" r="7" fill="oklch(65% 0.2 160)"/>
+    <rect x="150" y="224" width="90" height="14" rx="7" fill="oklch(38% 0.17 200)" opacity="0.4"/>
+
+    <rect x="106" y="266" width="180" height="50" rx="10" fill="oklch(38% 0.17 200 / 0.1)"/>
+    <circle cx="126" cy="291" r="7" fill="oklch(65% 0.22 60)"/>
+    <rect x="150" y="284" width="120" height="14" rx="7" fill="oklch(38% 0.17 200)" opacity="0.4"/>
+  </g>
+
+  <g transform="translate(368,300)">
+    <circle r="62" fill="none" stroke="oklch(38% 0.17 200 / 0.18)" stroke-width="14"/>
+    <circle r="62" fill="none" stroke="oklch(38% 0.17 200)" stroke-width="14" stroke-linecap="round"
+      stroke-dasharray="350 390" transform="rotate(-90)"/>
+    <text x="0" y="8" text-anchor="middle" font-family="ui-sans-serif, system-ui" font-size="30" font-weight="700" fill="oklch(38% 0.17 200)">99%</text>
+  </g>
+</svg>

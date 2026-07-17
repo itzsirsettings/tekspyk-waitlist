@@ -1,0 +1,20 @@
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rocket launching from a cloud platform">
+  <rect width="480" height="480" rx="40" fill="oklch(93% 0.05 120)"/>
+
+  <path d="M140 340 a70 46 0 0 1 20 -132 a90 60 0 0 1 168 -10 a64 44 0 0 1 4 130 Z" fill="white" stroke="oklch(38% 0.18 120)" stroke-width="3"/>
+
+  <g transform="translate(258,236) rotate(18)">
+    <path d="M0 -120 C34 -84 34 -10 20 40 L-20 40 C-34 -10 -34 -84 0 -120 Z" fill="oklch(38% 0.18 120)"/>
+    <circle cx="0" cy="-60" r="14" fill="white"/>
+    <path d="M-20 20 L-46 54 L-20 46 Z" fill="oklch(65% 0.2 30)"/>
+    <path d="M20 20 L46 54 L20 46 Z" fill="oklch(65% 0.2 30)"/>
+    <path d="M-12 40 L0 90 L12 40 Z" fill="oklch(65% 0.22 20)"/>
+  </g>
+
+  <g stroke="oklch(38% 0.18 120)" stroke-width="4" stroke-linecap="round" opacity="0.5">
+    <line x1="150" y1="330" x2="150" y2="300"/>
+    <line x1="330" y1="330" x2="330" y2="300"/>
+    <line x1="190" y1="360" x2="190" y2="335"/>
+    <line x1="290" y1="360" x2="290" y2="335"/>
+  </g>
+</svg>
