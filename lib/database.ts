@@ -9,7 +9,11 @@ export function getDatabasePool() {
   }
 
   if (!pool) {
-    pool = new Pool({ connectionString, max: 5 });
+    pool = new Pool({
+      connectionString,
+      max: 5,
+      ssl: connectionString.includes("localhost") ? false : { rejectUnauthorized: false },
+    });
   }
 
   return pool;

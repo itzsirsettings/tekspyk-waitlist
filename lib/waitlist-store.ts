@@ -53,6 +53,10 @@ const entryColumns = `
   terms_accepted, status, created_at, updated_at
 `;
 
+function toDate(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
 function toEntry(row: WaitlistRow): WaitlistEntry {
   return {
     id: row.id,
@@ -68,8 +72,8 @@ function toEntry(row: WaitlistRow): WaitlistEntry {
     newsletter: row.newsletter,
     termsAccepted: row.terms_accepted,
     status: row.status,
-    createdAt: row.created_at.toISOString(),
-    updatedAt: row.updated_at.toISOString(),
+    createdAt: toDate(row.created_at),
+    updatedAt: toDate(row.updated_at),
   };
 }
 
