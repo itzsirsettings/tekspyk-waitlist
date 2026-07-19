@@ -2,10 +2,11 @@ import { isAdminAccessAllowed } from "@/lib/admin-auth";
 
 function redirectWithSession(request: Request, location: string, value: string, maxAge: number) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const origin = new URL(request.url).origin;
   return new Response(null, {
     status: 303,
     headers: {
-      Location: new URL(location, request.url).toString(),
+      Location: new URL(location, origin).toString(),
       "Set-Cookie": `tekspyk_admin_session=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`,
     },
   });

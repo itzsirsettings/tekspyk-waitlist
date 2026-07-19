@@ -58,6 +58,12 @@ function toDate(value: Date | string): string {
 }
 
 function toEntry(row: WaitlistRow): WaitlistEntry {
+  const toISO = (val: unknown): string => {
+    if (val instanceof Date) return val.toISOString();
+    if (typeof val === "string" || typeof val === "number") return new Date(val).toISOString();
+    return new Date().toISOString();
+  };
+
   return {
     id: row.id,
     firstName: row.first_name,
@@ -72,8 +78,8 @@ function toEntry(row: WaitlistRow): WaitlistEntry {
     newsletter: row.newsletter,
     termsAccepted: row.terms_accepted,
     status: row.status,
-    createdAt: toDate(row.created_at),
-    updatedAt: toDate(row.updated_at),
+    createdAt: toISO(row.created_at),
+    updatedAt: toISO(row.updated_at),
   };
 }
 

@@ -69,7 +69,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
   }
 
-  const [stats, entries] = await Promise.all([getWaitlistStats(), listWaitlistEntries()]);
+  let stats, entries, dbError: string | null = null;
+  try {
+    [stats, entries] = await Promise.all([getWaitlistStats(), listWaitlistEntries()]);
+  } catch (err) {
+    console.error("Admin dashboard DB error:", err);
+    dbError = err instanceof Error ? err.message : "Unknown database error";
+    stats = { total: 0, confirmed: 0, pending: 0, countries: [], recentSignups: [] };
+    entries = [];
+  }
 
   return (
     <main className="min-h-screen bg-white text-[oklch(15%_0.01_260)] px-6 py-12 relative overflow-hidden hero-wash">
@@ -100,6 +108,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </form>
           </div>
         </div>
+
+        {dbError && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-4 text-amber-800">
+            <p className="font-semibold">Database Error</p>
+            <p className="text-sm mt-1 font-mono text-xs">{dbError}</p>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <section className="grid gap-6 sm:grid-cols-3">
