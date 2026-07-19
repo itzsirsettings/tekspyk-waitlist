@@ -1,9 +1,7 @@
-import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { WaitlistSubmission } from "@/lib/waitlist-schema";
-import { sendWelcomeEmail } from "@/lib/email";
+import { getDatabasePool } from "@/lib/database";
+import { sendAdminNotification, sendWelcomeEmail } from "@/lib/email";
 
 export interface WaitlistEntry {
   id: string;
@@ -31,46 +29,57 @@ export interface WaitlistStats {
   recentSignups: WaitlistEntry[];
 }
 
-interface StorePayload {
-  entries: WaitlistEntry[];
+interface WaitlistRow {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  country: string;
+  occupation: string;
+  experience_level: string;
+  learning_goals: string;
+  referral_code: string | null;
+  newsletter: boolean;
+  terms_accepted: boolean;
+  status: WaitlistEntry["status"];
+  created_at: Date;
+  updated_at: Date;
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "waitlist.json");
+const entryColumns = `
+  id, first_name, last_name, email, phone, country, occupation,
+  experience_level, learning_goals, referral_code, newsletter,
+  terms_accepted, status, created_at, updated_at
+`;
 
-async function ensureStore() {
-  await mkdir(DATA_DIR, { recursive: true });
-  if (!existsSync(DATA_FILE)) {
-    await writeFile(DATA_FILE, JSON.stringify({ entries: [] }, null, 2));
-  }
-}
-
-async function readStore(): Promise<StorePayload> {
-  await ensureStore();
-  const raw = await readFile(DATA_FILE, "utf8");
-  return JSON.parse(raw) as StorePayload;
-}
-
-async function writeStore(store: StorePayload) {
-  await ensureStore();
-  await writeFile(DATA_FILE, JSON.stringify(store, null, 2));
+function toEntry(row: WaitlistRow): WaitlistEntry {
+  return {
+    id: row.id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    phone: row.phone,
+    country: row.country,
+    occupation: row.occupation,
+    experienceLevel: row.experience_level,
+    learningGoals: row.learning_goals,
+    referralCode: row.referral_code ?? undefined,
+    newsletter: row.newsletter,
+    termsAccepted: row.terms_accepted,
+    status: row.status,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
 }
 
 export async function createWaitlistEntry(values: WaitlistSubmission) {
-  const store = await readStore();
-  const normalizedEmail = values.email.trim().toLowerCase();
-  const existing = store.entries.find((entry) => entry.email.toLowerCase() === normalizedEmail);
-
-  if (existing) {
-    throw new Error("This email is already on the waitlist.");
-  }
-
   const now = new Date().toISOString();
   const entry: WaitlistEntry = {
     id: randomUUID(),
     firstName: values.firstName.trim(),
     lastName: values.lastName.trim(),
-    email: normalizedEmail,
+    email: values.email.trim().toLowerCase(),
     phone: values.phone.trim(),
     country: values.country.trim(),
     occupation: values.occupation.trim(),
@@ -84,15 +93,43 @@ export async function createWaitlistEntry(values: WaitlistSubmission) {
     updatedAt: now,
   };
 
-  store.entries = [entry, ...store.entries];
-  await writeStore(store);
-  await sendWelcomeEmail(entry);
+  try {
+    await getDatabasePool().query(
+      `INSERT INTO waitlist_entries (${entryColumns})
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+      [
+        entry.id,
+        entry.firstName,
+        entry.lastName,
+        entry.email,
+        entry.phone,
+        entry.country,
+        entry.occupation,
+        entry.experienceLevel,
+        entry.learningGoals,
+        entry.referralCode ?? null,
+        entry.newsletter,
+        entry.termsAccepted,
+        entry.status,
+        entry.createdAt,
+        entry.updatedAt,
+      ],
+    );
+  } catch (error) {
+    if (typeof error === "object" && error && "code" in error && error.code === "23505") {
+      throw new Error("This email is already on the waitlist.");
+    }
+    throw error;
+  }
+
+  // The signup is already safe in Supabase. Email failures must not reject it.
+  await Promise.allSettled([sendWelcomeEmail(entry), sendAdminNotification(entry)]);
   return entry;
 }
 
 export async function listWaitlistEntries() {
-  const store = await readStore();
-  return store.entries.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  const result = await getDatabasePool().query<WaitlistRow>(`SELECT ${entryColumns} FROM waitlist_entries ORDER BY created_at DESC`);
+  return result.rows.map(toEntry);
 }
 
 export async function getWaitlistStats(): Promise<WaitlistStats> {
@@ -115,20 +152,21 @@ export async function getWaitlistStats(): Promise<WaitlistStats> {
   };
 }
 
+function escapeCsv(value: string | boolean | undefined) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
 export async function exportWaitlistCsv() {
   const entries = await listWaitlistEntries();
-  const headers = ["id", "name", "email", "country", "occupation", "experienceLevel", "status", "createdAt"];
+  const headers = [
+    "id", "firstName", "lastName", "email", "phone", "country", "occupation", "experienceLevel",
+    "learningGoals", "referralCode", "newsletter", "termsAccepted", "status", "createdAt",
+  ];
   const rows = entries.map((entry) => [
-    entry.id,
-    `${entry.firstName} ${entry.lastName}`,
-    entry.email,
-    entry.country,
-    entry.occupation,
-    entry.experienceLevel,
-    entry.status,
-    entry.createdAt,
+    entry.id, entry.firstName, entry.lastName, entry.email, entry.phone, entry.country, entry.occupation,
+    entry.experienceLevel, entry.learningGoals, entry.referralCode, entry.newsletter, entry.termsAccepted,
+    entry.status, entry.createdAt,
   ]);
 
-  const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-  return csv;
+  return [headers.join(","), ...rows.map((row) => row.map(escapeCsv).join(","))].join("\n");
 }

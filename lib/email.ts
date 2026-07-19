@@ -51,10 +51,15 @@ function getTransporter(config: NonNullable<ReturnType<typeof getSmtpConfig>>) {
   return cachedTransporter;
 }
 
-export async function sendWelcomeEmail(entry: WaitlistEntry) {
-  const subject = "You are on the TekSpyk launch list";
-  const text = `Hi ${entry.firstName},\n\nThanks for joining TekSpyk. We will be in touch with launch updates, early access opportunities, and curated learning resources.\n\nStay curious.\nThe TekSpyk team`;
-
+async function sendEmail({
+  to,
+  subject,
+  text,
+}: {
+  to: string;
+  subject: string;
+  text: string;
+}) {
   const config = getSmtpConfig();
 
   if (config) {
@@ -62,16 +67,36 @@ export async function sendWelcomeEmail(entry: WaitlistEntry) {
       const transporter = getTransporter(config);
       await transporter.sendMail({
         from: config.from,
-        to: entry.email,
+        to,
         subject,
         text,
       });
-      await appendEmailLog({ to: entry.email, subject, sentAt: new Date().toISOString(), provider: "smtp" });
+      await appendEmailLog({ to, subject, sentAt: new Date().toISOString(), provider: "smtp" });
       return;
     } catch (error) {
-      console.error("Failed to send welcome email via SMTP", error);
+      console.error(`Failed to send email via SMTP to ${to}`, error);
     }
   }
 
-  await appendEmailLog({ to: entry.email, subject, sentAt: new Date().toISOString(), provider: "local-ledger" });
+  await appendEmailLog({ to, subject, sentAt: new Date().toISOString(), provider: "local-ledger" });
+}
+
+export async function sendWelcomeEmail(entry: WaitlistEntry) {
+  const subject = "You are on the TekSpyk launch list";
+  const text = `Hi ${entry.firstName},\n\nThanks for joining TekSpyk. We will be in touch with launch updates, early access opportunities, and curated learning resources.\n\nStay curious.\nThe TekSpyk team`;
+
+  await sendEmail({ to: entry.email, subject, text });
+}
+
+export async function sendAdminNotification(entry: WaitlistEntry) {
+  const recipient = process.env.ADMIN_NOTIFICATION_EMAIL?.trim();
+
+  if (!recipient) {
+    return;
+  }
+
+  const subject = "New TekSpyk waitlist signup";
+  const text = `A new person joined the TekSpyk waitlist.\n\nName: ${entry.firstName} ${entry.lastName}\nEmail: ${entry.email}\nCountry: ${entry.country}\nOccupation: ${entry.occupation}\nExperience: ${entry.experienceLevel}\nGoals: ${entry.learningGoals}\nCreated: ${entry.createdAt}\n\nYou can review all signups in the admin dashboard.`;
+
+  await sendEmail({ to: recipient, subject, text });
 }

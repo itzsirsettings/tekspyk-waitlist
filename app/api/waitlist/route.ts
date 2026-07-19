@@ -1,9 +1,23 @@
 import type { NextRequest } from "next/server";
 import { createWaitlistEntry } from "@/lib/waitlist-store";
 import { waitlistSchema } from "@/lib/waitlist-schema";
+import { checkRateLimit, rateLimitKey } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const rateCheck = checkRateLimit(rateLimitKey(request));
+    if (!rateCheck.allowed) {
+      return Response.json(
+        { success: false, error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateCheck.resetAt - Date.now()) / 1000)),
+          },
+        },
+      );
+    }
+
     const payload = await request.json();
     const parsed = waitlistSchema.safeParse(payload);
 

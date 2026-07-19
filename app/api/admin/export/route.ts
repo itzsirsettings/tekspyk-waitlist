@@ -1,9 +1,15 @@
+import { cookies } from "next/headers";
 import { isAdminAccessAllowed } from "@/lib/admin-auth";
 import { exportWaitlistCsv } from "@/lib/waitlist-store";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const requestedToken = searchParams.get("token");
+export async function GET() {
+  const sessionValue = (await cookies()).get("tekspyk_admin_session")?.value;
+  let requestedToken: string | null = null;
+  try {
+    requestedToken = sessionValue ? decodeURIComponent(sessionValue) : null;
+  } catch {
+    requestedToken = null;
+  }
   const adminAccessToken = process.env.ADMIN_ACCESS_TOKEN;
   const isAllowed = isAdminAccessAllowed({
     requestedToken,
