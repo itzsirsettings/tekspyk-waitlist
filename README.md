@@ -4,7 +4,7 @@ TekSpyk is a self-paced AI foundations learning portal. Learners can enroll in p
 
 ## Current launch state
 
-The Railway environment created for this work is **staging**. Learner registration is deliberately disabled there (`LEARNING_REGISTRATION_ENABLED=false`). The public landing page and learning preview are available, but accounts must not be activated until email delivery and the operator-owned global guardian-consent and privacy process are approved and deployed. The privacy and terms pages identify those pending decisions; they are not a claim of legal approval.
+The public `/onboarding` form is the main learner registration path. It creates an account directly in Railway PostgreSQL and stores learning preferences with the learner profile. For email-deferred operation, set `LEARNING_REGISTRATION_ENABLED=true` and `AUTH_EMAIL_VERIFICATION_ENABLED=false`; learners can use accounts immediately, but email ownership is not verified and email password recovery is unavailable. Adults only; the server enforces age confirmation and terms acceptance. Minors remain blocked until guardian consent is implemented and approved.
 
 ## Stack and boundaries
 
@@ -28,7 +28,7 @@ Use `node scripts/package-release.mjs` to create an allowlisted source bundle an
 
 ## Operational prerequisites before opening registration
 
-1. Configure and prove production SMTP verification/reset delivery.
+1. Configure and prove production SMTP verification/reset delivery before setting `AUTH_EMAIL_VERIFICATION_ENABLED=true`.
 2. Publish an operator-approved guardian consent and jurisdiction/age handling process before under-18 activation.
 3. Define data retention, deletion, backup schedule and restore objectives, incident contact, monitoring, and production ownership.
 4. Create a production environment with restricted access, reviewed migrations and a verified release/rollback procedure.

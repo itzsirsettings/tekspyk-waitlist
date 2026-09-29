@@ -8,7 +8,19 @@ const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 1, c
   ssl: { ca: process.env.DATABASE_SSL_CA.replaceAll("\\n", "\n"), rejectUnauthorized: true, checkServerIdentity: (_, cert) => checkServerIdentity(process.env.DATABASE_SSL_SERVERNAME, cert) } });
 try {
   const result = await getMigrations({ database: pool,
-    user: { modelName: "learning_users", additionalFields: { role: { type: "string", defaultValue: "student", input: false }, adultConfirmed: { type: "boolean", required: true }, termsAccepted: { type: "boolean", required: true }, termsVersion: { type: "string", defaultValue: "2026-09-28" } } },
+    user: { modelName: "learning_users", additionalFields: {
+      role: { type: "string", defaultValue: "student", input: false },
+      adultConfirmed: { type: "boolean", required: true },
+      termsAccepted: { type: "boolean", required: true },
+      termsVersion: { type: "string", defaultValue: "2026-09-28" },
+      phone: { type: "string", required: true },
+      country: { type: "string", required: true },
+      occupation: { type: "string", required: true },
+      experienceLevel: { type: "string", required: true },
+      learningGoals: { type: "string", required: true },
+      referralCode: { type: "string", required: false },
+      newsletter: { type: "boolean", defaultValue: false },
+    } },
     session: { modelName: "learning_sessions" }, account: { modelName: "learning_accounts" }, verification: { modelName: "learning_verifications" },
     rateLimit: { enabled: true, storage: "database", modelName: "auth_rate_limits" },
   });

@@ -15,6 +15,7 @@ function queueAuthEmail(to: string, subject: string, url: string) {
 function createAuth() {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (!secret || secret.length < 32) throw new Error("BETTER_AUTH_SECRET must contain at least 32 characters");
+  const emailVerificationEnabled = process.env.AUTH_EMAIL_VERIFICATION_ENABLED === "true";
   return betterAuth({
     appName: "TekSpyk",
     baseURL: appUrl(),
@@ -25,16 +26,16 @@ function createAuth() {
     emailAndPassword: {
       enabled: true,
       disableSignUp: process.env.LEARNING_REGISTRATION_ENABLED !== "true",
-      requireEmailVerification: true,
-      autoSignIn: false,
+      requireEmailVerification: emailVerificationEnabled,
+      autoSignIn: !emailVerificationEnabled,
       minPasswordLength: 12,
       maxPasswordLength: 128,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => queueAuthEmail(user.email, "Reset your TekSpyk password", url),
     },
     emailVerification: {
-      sendOnSignUp: true,
-      sendOnSignIn: true,
+      sendOnSignUp: emailVerificationEnabled,
+      sendOnSignIn: emailVerificationEnabled,
       autoSignInAfterVerification: true,
       expiresIn: 3600,
       sendVerificationEmail: async ({ user, url }) => queueAuthEmail(user.email, "Verify your TekSpyk email", url),
@@ -46,6 +47,13 @@ function createAuth() {
         adultConfirmed: { type: "boolean", required: true, input: true },
         termsAccepted: { type: "boolean", required: true, input: true },
         termsVersion: { type: "string", defaultValue: "2026-09-28", input: false },
+        phone: { type: "string", required: true, input: true },
+        country: { type: "string", required: true, input: true },
+        occupation: { type: "string", required: true, input: true },
+        experienceLevel: { type: "string", required: true, input: true },
+        learningGoals: { type: "string", required: true, input: true },
+        referralCode: { type: "string", required: false, input: true },
+        newsletter: { type: "boolean", defaultValue: false, input: true },
       },
     },
     session: { modelName: "learning_sessions", expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24, cookieCache: { enabled: false } },
@@ -69,6 +77,16 @@ function createAuth() {
           throw new APIError("FORBIDDEN", { message: "Accounts for learners under 18 are not open yet." });
         }
         if (user.termsAccepted !== true) throw new APIError("BAD_REQUEST", { message: "Accept the terms before creating an account." });
+        for (const [field, minimum, maximum] of [
+          ["phone", 1, 40], ["country", 1, 100], ["occupation", 1, 100],
+          ["experienceLevel", 1, 100], ["learningGoals", 1, 2000], ["referralCode", 0, 50],
+        ] as const) {
+          const value = user[field];
+          if (typeof value !== "string" || value.trim().length < minimum || value.trim().length > maximum) {
+            throw new APIError("BAD_REQUEST", { message: "Complete the required registration details and try again." });
+          }
+        }
+        if (typeof user.newsletter !== "boolean") throw new APIError("BAD_REQUEST", { message: "Invalid product updates preference." });
         return { data: { ...user, name: user.name.trim(), role: "student" } };
       } } },
     },

@@ -61,7 +61,7 @@ async function account(label) {
   const testIP = `198.51.100.${clientNumber++}`;
   const context = await request.newContext({ baseURL, timeout: 120000, extraHTTPHeaders: { Origin: baseURL, "x-real-ip": testIP } });
   accounts.push({ email, context });
-  await call(context, "/api/auth/sign-up/email", { name: `Test ${label}`, email, password, adultConfirmed: true, termsAccepted: true, role: "admin", callbackURL: "/learn" });
+  await call(context, "/api/auth/sign-up/email", { name: `Test ${label}`, email, password, adultConfirmed: true, termsAccepted: true, phone: "+15550000000", country: "Test", occupation: "Student", experienceLevel: "Beginner", learningGoals: "Learn software engineering", referralCode: "", newsletter: false, role: "admin", callbackURL: "/learn" });
   const row = (await db.query('SELECT id, role, "emailVerified" FROM learning_users WHERE email=$1', [email])).rows[0];
   assert.equal(row.role, "student"); assert.equal(row.emailVerified, false);
   await call(context, "/api/auth/sign-in/email", { email, password }, 403);
@@ -77,7 +77,7 @@ try {
   const log = await fs.open("test-results/learning-server.log", "w");
   app = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--port", "3100"], {
     cwd: process.cwd(), windowsHide: true, stdio: ["ignore", log.fd, log.fd],
-    env: { ...process.env, BETTER_AUTH_URL: baseURL, LEARNING_REGISTRATION_ENABLED: "true", SMTP_HOST: "127.0.0.1", SMTP_PORT: "2526", SMTP_USER: "test", SMTP_PASSWORD: password, SMTP_FROM: "TekSpyk Test <test@example.test>", ADMIN_NOTIFICATION_EMAIL: "" },
+    env: { ...process.env, BETTER_AUTH_URL: baseURL, LEARNING_REGISTRATION_ENABLED: "true", AUTH_EMAIL_VERIFICATION_ENABLED: "true", SMTP_HOST: "127.0.0.1", SMTP_PORT: "2526", SMTP_USER: "test", SMTP_PASSWORD: password, SMTP_FROM: "TekSpyk Test <test@example.test>", ADMIN_NOTIFICATION_EMAIL: "" },
   });
   for (let i = 0; i < 120; i++) { try { if ((await fetch(`${baseURL}/api/health`, { signal: AbortSignal.timeout(15000) })).ok) break; } catch { /* Startup connection refusal is expected; bounded below. */ } await pause(1000); }
   assert.ok((await fetch(`${baseURL}/api/health`)).ok, "Test app must be healthy");

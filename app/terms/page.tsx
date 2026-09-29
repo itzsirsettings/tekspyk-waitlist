@@ -15,16 +15,17 @@ export default function Terms() {
 
       <h2>Your information and product updates</h2>
       <p>
-        Provide accurate contact and learning-interest information. Choosing product updates is optional
-        and is saved with your request, but TekSpyk does not currently send registration confirmations or
-        product-update emails.
+        Provide accurate contact and learning-interest information. Choosing product updates is optional.
+        Email verification and password-recovery email are temporarily unavailable. Use an email address
+        you control and keep your password safe; TekSpyk cannot currently send a recovery link.
       </p>
 
       <h2>Service availability</h2>
       <p>
-        TekSpyk may be unavailable during maintenance or recovery. A saved registration request does not
-        grant access to classes. Learner account registration is closed, and separate learner-account
-        terms will be needed before it opens.
+        TekSpyk may be unavailable during maintenance or recovery. Registration creates a learner account;
+        access to published classes is subject to the class enrollment settings. Accounts are currently
+        restricted to people who confirm they are at least 18. Under-18 access remains closed until a
+        guardian-consent process is approved and implemented.
       </p>
 
       <h2>Operator and privacy contact</h2>

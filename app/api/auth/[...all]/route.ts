@@ -14,7 +14,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await readRequestText(request, 16_384);
-    if (new URL(request.url).pathname.endsWith("/sign-up/email")) {
+    const pathname = new URL(request.url).pathname;
+    if (process.env.AUTH_EMAIL_VERIFICATION_ENABLED !== "true" &&
+      (pathname.endsWith("/request-password-reset") || pathname.endsWith("/send-verification-email"))) {
+      return Response.json({ message: "Email verification and password recovery are temporarily unavailable." }, {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    if (pathname.endsWith("/sign-up/email")) {
       let input: unknown;
       try { input = JSON.parse(body); } catch { throw new HttpError(400, "Invalid signup request."); }
       if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "Invalid signup request.");

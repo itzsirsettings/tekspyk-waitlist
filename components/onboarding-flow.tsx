@@ -122,6 +122,8 @@ export function OnboardingFlow() {
     country: "",
   });
   const [contactErrors, setContactErrors] = useState<Partial<Record<keyof ContactFields, string>>>({});
+  const [password, setPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState("");
   const [newsletter, setNewsletter] = useState(false);
   const [adultConfirmed, setAdultConfirmed] = useState(false);
@@ -164,6 +166,11 @@ export function OnboardingFlow() {
       setContactErrors(errors);
       return;
     }
+    if (password.length < 12 || password.length > 128) {
+      setPasswordError("Use a password between 12 and 128 characters.");
+      return;
+    }
+    setPasswordError(null);
     setContactErrors({});
     trackEvent("onboarding_step_completed", { step: "contact" });
     goForward();
@@ -188,19 +195,7 @@ export function OnboardingFlow() {
       return;
     }
 
-    const payload = {
-      ...contact,
-      occupation: occupation ?? "",
-      experienceLevel: experienceLevel ?? "",
-      learningGoals: `I am interested in ${buildChoice ?? "learning technology"}. My main goal is to ${(goal ?? "level up my engineering skills").toLowerCase()}.`,
-      referralCode: referralCode.trim(),
-      newsletter,
-      adultConfirmed,
-      termsAccepted,
-    };
-
-    const parsed = waitlistSchema.safeParse(payload);
-    if (!parsed.success) {
+    if (!buildChoice || !experienceLevel || !occupation || !goal || !password) {
       setSubmitError("Something is missing. Please go back and complete every step.");
       return;
     }
@@ -208,17 +203,32 @@ export function OnboardingFlow() {
     setIsSubmitting(true);
     try {
       trackEvent("registration_submit_started");
-      const response = await fetch("/api/waitlist", {
+      const response = await fetch("/api/auth/sign-up/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({
+          name: `${contact.firstName.trim()} ${contact.lastName.trim()}`,
+          email: contact.email.trim(),
+          password,
+          phone: contact.phone.trim(),
+          country: contact.country.trim(),
+          occupation,
+          experienceLevel,
+          learningGoals: `I am interested in ${buildChoice}. My main goal is to ${goal.toLowerCase()}.`,
+          referralCode: referralCode.trim(),
+          newsletter,
+          adultConfirmed,
+          termsAccepted,
+          callbackURL: "/learn",
+        }),
       });
-      const body = await response.json();
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(body?.error || "Your signup could not be completed. Please try again.");
+        throw new Error(body?.message || body?.error || "Your account could not be created. Please try again.");
       }
       trackEvent("registration_submit_succeeded");
-      router.push("/sign-up");
+      router.replace("/learn");
+      router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Please try again in a moment.");
       trackEvent("registration_submit_failed");
@@ -306,7 +316,7 @@ export function OnboardingFlow() {
               <p className="mx-auto mt-4 max-w-sm text-lg leading-8 text-ink-soft">
                 from AI fundamentals to deployment and monitoring, taught through real products you ship yourself.
               </p>
-              <p className="mt-8 font-semibold">Share your learning interests with the TekSpyk team.</p>
+              <p className="mt-8 font-semibold">Choose a path that fits your goals, then start learning in your own account.</p>
               <button
                 type="button"
                 onClick={goForward}
@@ -357,9 +367,9 @@ export function OnboardingFlow() {
           {step === "contact" ? (
             <section aria-labelledby="q-contact">
               <h1 id="q-contact" className="text-[26px] leading-tight tracking-[-0.025em] sm:text-3xl">
-                TekSpyk registration request
+                Create your learner account
               </h1>
-              <p className="mt-2 text-ink-soft">Add your details to submit a registration request. This form does not create a learner account. Email confirmations and product updates are not available yet.</p>
+              <p className="mt-2 text-ink-soft">Your details set up your learning profile. Email verification and password recovery are temporarily unavailable, so use an email address you control and save your password securely.</p>
               <form
                 className="mt-8 flex flex-col gap-4"
                 onSubmit={(event) => {
@@ -418,6 +428,12 @@ export function OnboardingFlow() {
                     ) : null}
                   </div>
                 ))}
+                <div>
+                  <label htmlFor="password" className="mb-1.5 block text-sm font-semibold">Create a password</label>
+                  <input id="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} value={password} onChange={(event) => { setPassword(event.target.value); setPasswordError(null); }} aria-invalid={Boolean(passwordError)} aria-describedby={passwordError ? "password-help password-error" : "password-help"} className="h-12 w-full rounded-[14px] border border-line bg-surface px-4 text-ink focus:border-blue focus:bg-white focus:outline-none" />
+                  <p id="password-help" className="mt-1.5 text-sm text-ink-faint">Use at least 12 characters. A memorable phrase works well.</p>
+                  {passwordError ? <p id="password-error" role="alert" className="mt-1.5 text-sm font-medium text-pink">{passwordError}</p> : null}
+                </div>
                 <div className="absolute left-[-9999px] top-auto" aria-hidden="true">
                   <label htmlFor="company-website">Company website</label>
                   <input
@@ -445,7 +461,7 @@ export function OnboardingFlow() {
               <h1 id="q-consent" className="text-[26px] leading-tight tracking-[-0.025em] sm:text-3xl">
                 Last step. Lock in your spot.
               </h1>
-              <p className="mt-2 text-ink-soft">Add a referral code if a friend sent you, then confirm.</p>
+              <p className="mt-2 text-ink-soft">Add an optional referral code and confirm your account details.</p>
               <div className="mt-8 flex flex-col gap-5">
                 <div>
                   <label htmlFor="referralCode" className="mb-1.5 block text-sm font-semibold">
@@ -458,6 +474,7 @@ export function OnboardingFlow() {
                     onChange={(event) => setReferralCode(event.target.value)}
                     placeholder="FRIEND2026"
                     autoComplete="off"
+                    maxLength={50}
                     className="h-12 w-full rounded-[14px] border border-line bg-surface px-4 uppercase tracking-wide text-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-ink-faint focus:border-blue focus:bg-white focus:outline-none"
                   />
                 </div>
@@ -517,7 +534,7 @@ export function OnboardingFlow() {
                     </>
                   ) : (
                     <>
-                      Submit request
+                      Create account and start learning
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}

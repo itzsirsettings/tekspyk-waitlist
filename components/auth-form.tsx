@@ -12,7 +12,7 @@ const titles: Record<Mode, string> = {
   "reset-password": "Choose a new password", "verify-email": "Verify your email",
 };
 
-export function AuthForm({ mode, registrationEnabled = true }: { mode: Mode; registrationEnabled?: boolean }) {
+export function AuthForm({ mode, registrationEnabled = true, emailActionsEnabled = false }: { mode: Mode; registrationEnabled?: boolean; emailActionsEnabled?: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const [busy, setBusy] = useState(false);
@@ -108,6 +108,15 @@ export function AuthForm({ mode, registrationEnabled = true }: { mode: Mode; reg
     <footer className="signup-footer"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><span>© 2026 TekSpyk</span></footer>
   </main>;
 
+  if (["forgot-password", "verify-email"].includes(mode) && !emailActionsEnabled) return <main className="auth-page">
+    <Link href="/" className="learning-wordmark">TekSpyk<span aria-hidden="true">.</span></Link>
+    <section className="auth-card" aria-labelledby="auth-heading">
+      <h1 id="auth-heading">Email support is temporarily unavailable</h1>
+      <p className="form-notice" role="status">Email verification and password recovery have been paused. Use the email address you registered with and keep your password safe. For account help, contact hello@tekspyk.com.</p>
+      <nav className="auth-links" aria-label="Account help"><Link href="/sign-in">Back to sign in</Link></nav>
+    </section>
+  </main>;
+
   return <main className="auth-page">
     <Link href="/" className="learning-wordmark">TekSpyk<span aria-hidden="true">.</span></Link>
     <section className="auth-card" aria-labelledby="auth-heading">
@@ -125,7 +134,7 @@ export function AuthForm({ mode, registrationEnabled = true }: { mode: Mode; reg
       {notice && <p className="form-notice" role="status">{notice}</p>}
       <nav className="auth-links" aria-label="Account help">
         {mode !== "sign-in" && <Link href="/sign-in">Sign in</Link>}
-        {mode === "sign-in" && <><Link href="/sign-up">Create an account</Link><Link href="/forgot-password">Forgot password?</Link><Link href="/verify-email">Resend verification</Link></>}
+        {mode === "sign-in" && <><Link href="/onboarding">Create an account</Link>{emailActionsEnabled && <><Link href="/forgot-password">Forgot password?</Link><Link href="/verify-email">Resend verification</Link></>}</>}
         {mode === "reset-password" && <Link href="/forgot-password">Request a new reset link</Link>}
       </nav>
     </section>

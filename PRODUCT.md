@@ -4,13 +4,13 @@
 
 brand
 
-The entire surface is a pre-launch marketing site plus a signup quiz. Design IS the product here: the visitor's impression drives conversion to the waitlist.
+TekSpyk is a learning platform with a public multi-step learner registration flow, classes, lessons, videos, and learner progress.
 
 ## Users and purpose
 
 Ambitious learners (students, working professionals, founders, career switchers) who want to learn AI-powered software engineering by shipping real products. They arrive from social links or word of mouth, skim the landing page on mobile or desktop, and decide in under a minute whether to join us.
 
-Primary job: convince the visitor TekSpyk is a serious, premium academy and get them through the onboarding quiz to a completed waitlist signup.
+Primary job: help learners choose a path, create an account, and continue into the learning workspace.
 
 ## Brand personality
 

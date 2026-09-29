@@ -118,14 +118,14 @@ const faqs = [
       "AI fundamentals, prompt engineering, programming, web and mobile development, SaaS products, AI agents, automation, DevOps, cloud, testing, security, product management, UI and UX, deployment, and monitoring.",
   },
   {
-    question: "How do I register my interest?",
+    question: "How do I register?",
     answer:
-      "Complete the short registration form. It records your learning interests and contact details so the TekSpyk team can review your request.",
+      "Complete the short registration form to create your learner account and choose the path you want to study.",
   },
   {
     question: "Does this form create a learner account?",
     answer:
-      "No. This form submits a registration request; it does not create a learner account or enroll you in a class.",
+      "Yes. It creates your TekSpyk account so you can continue into the learning workspace. Email verification and password recovery are temporarily unavailable, so use an email address you control and keep your password safe.",
   },
 ];
 
@@ -253,7 +253,7 @@ export function LandingPage({ topicStates = {} }: LandingPageProps) {
           <div className="mx-auto flex max-w-4xl flex-col items-center px-5 pb-16 pt-16 text-center sm:pt-24">
             <p className="glow-border inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm shadow-[0_2px_14px_rgba(37,99,235,0.10)]">
               <span>
-                Explore TekSpyk programs and submit a registration request.
+                Explore TekSpyk programs and create your learner account.
               </span>
               <Link
                 href="/onboarding"
@@ -581,7 +581,7 @@ export function LandingPage({ topicStates = {} }: LandingPageProps) {
               Start your registration
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-white/70">
-              Submit a registration request to share the learning path you are interested in.
+              Create your learner account and start the learning path that fits you.
             </p>
             <Link
               href="/onboarding"

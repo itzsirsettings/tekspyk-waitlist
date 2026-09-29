@@ -2,9 +2,9 @@
 
 ## Current product and launch boundary
 
-The existing Next.js 16 and React 19 application has been extended from a waitlist and curriculum preview into a learning workflow with verified-email accounts, open self-enrollment in published classes, authored lessons, assignments, progress, deterministic quiz scoring, teacher grading, and an audit trail. The preview's check marks remain browser-local. TekSpyk now has Railway staging and production environments with PostgreSQL and web services; the production web service is live. Production learner registration remains disabled while verification/reset email delivery is unavailable. See operations.md for the current release boundary.
+The existing Next.js 16 and React 19 application has been extended from a waitlist and curriculum preview into a learning workflow with student accounts, open self-enrollment in published classes, authored lessons, assignments, progress, deterministic quiz scoring, teacher grading, and an audit trail. The preview's check marks remain browser-local. TekSpyk now has Railway staging and production environments with PostgreSQL and web services; the production web service is live. The `/onboarding` questionnaire creates an account directly. In the current email-deferred launch mode, accounts are not email-verified and recovery mail is unavailable. See operations.md for the current release boundary.
 
-The first live learning workflow will use the existing AI engineering curriculum. A learner creates and verifies an account, openly enrolls in a class, studies an authored lesson, submits an assignment, and sees progress and a grade. Objective questions can be scored deterministically. A teacher reviews free-text submissions and controls the final grade. Existing waitlist records stay separate and are never converted to accounts automatically.
+The first live learning workflow will use the existing AI engineering curriculum. A learner creates an account through `/onboarding`, openly enrolls in a class, studies an authored lesson, submits an assignment, and sees progress and a grade. Objective questions can be scored deterministically. A teacher reviews free-text submissions and controls the final grade. Existing waitlist records stay separate and are never converted to accounts automatically.
 
 ## Threat model and boundaries
 
@@ -19,7 +19,7 @@ The first live learning workflow will use the existing AI engineering curriculum
 
 ## Data flow and deployment
 
-Next.js route handlers and server components perform authorization before reading or writing PostgreSQL. Auth tables use Better Auth-compatible migrations; learning tables use additive SQL migrations. The browser receives only records owned by the learner or assigned to the teacher. Quiz answer keys are removed from learner responses. SMTP carries verification and reset links; delivery is required for account activation. Railway is the selected deployment target. Production is live, but registration remains disabled until SMTP credentials and a verified sender are configured and tested. The learner app changes must not bypass verified identity or role checks.
+Next.js route handlers and server components perform authorization before reading or writing PostgreSQL. Auth tables use Better Auth-compatible migrations; learning tables use additive SQL migrations. The browser receives only records owned by the learner or assigned to the teacher. Quiz answer keys are removed from learner responses. Railway is the selected deployment target. Email verification can be enabled only after delivery and sender configuration are tested. Without verification, account ownership and email recovery are not guaranteed; the UI states this limitation and the learning app still enforces server-side sessions, roles, consent, age, and learner-data ownership.
 
 ## Failure, recovery, and release
 
