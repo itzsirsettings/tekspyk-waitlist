@@ -1,0 +1,21 @@
+# Local build, dependency and runtime state
+.next/
+node_modules/
+.railway-secrets/
+test-results/
+playwright-report/
+coverage/
+
+# Local-only configuration and generated audit output
+.env
+.env.*
+*.local.json
+*.tsbuildinfo
+audit-*.json
+dev.log
+
+# Design artifacts and the independent video tooling project
+artifacts/
+video/
+.agents/
+.claude/

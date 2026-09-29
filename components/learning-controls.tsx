@@ -13,6 +13,13 @@ async function changeLearning(input: LearningAction) {
   return result as { success: true; id?: string; slug?: string; score?: number | null };
 }
 
+async function uploadLessonMedia(classId: string, lessonId: string, file: File, altText: string) {
+  const form = new FormData(); form.set("classId", classId); form.set("lessonId", lessonId); form.set("file", file); form.set("altText", altText);
+  const response = await fetch("/api/learning/media", { method: "POST", body: form });
+  const result = await response.json();
+  if (!response.ok) throw new Error(`${file.name}: ${result.error ?? "upload failed"}`);
+}
+
 export function SignOutButton() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -30,7 +37,7 @@ export function LearningActionButton({ input, children, secondary = false }: { i
   const [error, setError] = useState("");
   return <div><button className={secondary ? "learning-secondary" : "learning-primary"} disabled={busy} onClick={async () => {
     setBusy(true); setError("");
-    try { const result = await changeLearning(input); if (input.action === "create-ai-course" && result.id) router.push(`/teach/${result.id}`); router.refresh(); }
+    try { const result = await changeLearning(input); if (result.id && input.action.startsWith("create-")) router.push(`/teach/${result.id}`); router.refresh(); }
     catch (err) { setError(err instanceof Error ? err.message : "Unable to save."); }
     finally { setBusy(false); }
   }}>{busy ? "Saving…" : children}</button>{error && <p className="form-error" role="alert">{error}</p>}</div>;
@@ -71,9 +78,9 @@ export function CreateClassForm() {
   const router = useRouter(); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   return <form className="learning-form" onSubmit={async (event) => {
     event.preventDefault(); if (busy) return; const form = new FormData(event.currentTarget); setBusy(true); setError("");
-    try { const result = await changeLearning({ action: "create-class", title: String(form.get("title")), description: String(form.get("description")) }); router.push(`/teach/${result.id}`); router.refresh(); }
+    try { const result = await changeLearning({ action: "create-class", title: String(form.get("title")), description: String(form.get("description")), subject: String(form.get("subject")), level: String(form.get("level")) }); router.push(`/teach/${result.id}`); router.refresh(); }
     catch (err) { setError(err instanceof Error ? err.message : "Unable to create class."); setBusy(false); }
-  }}><label>Class title<input name="title" required minLength={3} maxLength={140} placeholder="AI Engineering: From idea to prototype" /></label><label>What will learners be able to do?<textarea name="description" required minLength={10} maxLength={2000} rows={3} /></label><button className="learning-primary" disabled={busy}>{busy ? "Creating…" : "Create class draft"}</button>{error && <p className="form-error" role="alert">{error}</p>}</form>;
+  }}><label>Class title<input name="title" required minLength={3} maxLength={140} placeholder="AI Engineering: From idea to prototype" /></label><div className="grid gap-4 sm:grid-cols-2"><label>Subject<input name="subject" required minLength={2} maxLength={100} defaultValue="Digital skills" placeholder="Digital skills, AI, or computing" /></label><label>Level<select name="level" defaultValue="Beginner"><option>Beginner</option><option>Foundations</option><option>Intermediate</option><option>Advanced</option><option>All levels</option></select></label></div><label>What will learners be able to do?<textarea name="description" required minLength={10} maxLength={2000} rows={3} /></label><button className="learning-primary" disabled={busy}>{busy ? "Creating…" : "Create class draft"}</button>{error && <p className="form-error" role="alert">{error}</p>}</form>;
 }
 
 const blankQuestion = (): QuizQuestion => ({ prompt: "", options: ["", "", ""], correctIndex: 0 });
@@ -85,13 +92,25 @@ export function CreateLessonForm({ classId }: { classId: string }) {
   return <form className="learning-form" onSubmit={async (event) => {
     event.preventDefault(); if (busy) return; const element = event.currentTarget; const form = new FormData(element); setBusy(true); setError(""); setNotice("");
     try {
-      await changeLearning({ action: "create-lesson", classId, title: String(form.get("title")), content: String(form.get("content")), prompt: String(form.get("prompt")), kind, questions: kind === "quiz" ? questions : [] });
-      element.reset(); setQuestions([blankQuestion()]); setNotice("Lesson and assignment saved."); router.refresh();
+      const selectedFiles = form.getAll("media").filter((file): file is File => file instanceof File && file.size > 0);
+      if (selectedFiles.length > 8) throw new Error("Add no more than eight media files to one lesson.");
+      if (selectedFiles.length && String(form.get("altText") ?? "").trim().length < 5) throw new Error("Add a short description for the selected images or videos.");
+      const lesson = await changeLearning({ action: "create-lesson", classId, title: String(form.get("title")), topic: String(form.get("topic")), subtopic: String(form.get("subtopic")), content: String(form.get("content")), prompt: String(form.get("prompt")), kind, questions: kind === "quiz" ? questions : [] });
+      let uploadCount = 0;
+      for (const file of selectedFiles) {
+        if (!lesson.id) throw new Error("Lesson was created, but its media could not be linked. Refresh this page and edit the lesson.");
+        try { await uploadLessonMedia(classId, lesson.id, file, String(form.get("altText"))); uploadCount++; }
+        catch (uploadError) { throw new Error(`Lesson saved${uploadCount ? ` with ${uploadCount} media file${uploadCount === 1 ? "" : "s"}` : ""}. ${uploadError instanceof Error ? uploadError.message : "Media upload failed."} You can retry from the lesson editor.`); }
+      }
+      element.reset(); setQuestions([blankQuestion()]); setNotice(`Lesson saved${uploadCount ? ` with ${uploadCount} media file${uploadCount === 1 ? "" : "s"}` : ""}.`); router.refresh();
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to save lesson."); }
     finally { setBusy(false); }
   }}>
+    <div className="grid gap-4 sm:grid-cols-2"><label>Topic<input name="topic" required minLength={2} maxLength={120} placeholder="For example, safe AI use" /></label><label>Subtopic<input name="subtopic" maxLength={160} placeholder="For example, checking AI outputs" /></label></div>
     <label>Lesson title<input name="title" required minLength={3} maxLength={140} /></label>
     <label>Lesson content<textarea name="content" required minLength={50} maxLength={50000} rows={12} placeholder="Teach the concept, work through an example, and explain how to apply it. Separate paragraphs with a blank line." /></label>
+    <label>Lesson images or video<input name="media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" multiple /><span className="field-hint">Up to eight files per lesson. JPEG, PNG, or WebP images up to 12 MiB; MP4 or WebM videos up to 64 MiB each.</span></label>
+    <label>Image description or video caption<input name="altText" maxLength={300} placeholder="Describe what the image explains or the video teaches" /></label>
     <label>Assignment type<select value={kind} onChange={(event) => setKind(event.target.value as "written" | "quiz")}><option value="written">Written work, graded by a teacher</option><option value="quiz">Multiple choice, scored automatically</option></select></label>
     <label>Assignment instructions<textarea name="prompt" required minLength={10} maxLength={5000} rows={3} /></label>
     {kind === "quiz" && <div className="space-y-5">{questions.map((question, i) => <fieldset className="quiz-question" key={i}><legend>Question {i + 1}</legend>
@@ -115,11 +134,19 @@ export function GradeForm({ submission }: { submission: Submission }) {
   }}><label>Grade out of 100<input type="number" name="grade" required min={0} max={100} step={1} defaultValue={submission.grade ?? ""} /></label><label>Feedback for the learner<textarea name="feedback" required minLength={5} maxLength={5000} rows={3} defaultValue={submission.feedback} /></label><button className="learning-primary" disabled={busy}>{busy ? "Saving…" : "Record teacher grade"}</button>{error && <p className="form-error" role="alert">{error}</p>}{saved && <p className="form-notice" role="status">Grade recorded.</p>}</form>;
 }
 
-export function EditLessonForm({ lesson }: { lesson: { id: string; title: string; content: string; prompt: string } }) {
+export function EditLessonForm({ lesson, classId }: { lesson: { id: string; title: string; topic?: string; subtopic?: string; content: string; prompt: string }; classId: string }) {
   const router = useRouter(); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [saved, setSaved] = useState(false);
   return <form className="learning-form" onSubmit={async event => {
     event.preventDefault(); const form = new FormData(event.currentTarget); setBusy(true); setError(""); setSaved(false);
-    try { await changeLearning({ action: "update-lesson", lessonId: lesson.id, title: String(form.get("title")), content: String(form.get("content")), prompt: String(form.get("prompt")) }); setSaved(true); router.refresh(); }
+    try {
+      await changeLearning({ action: "update-lesson", lessonId: lesson.id, title: String(form.get("title")), topic: String(form.get("topic")), subtopic: String(form.get("subtopic")), content: String(form.get("content")), prompt: String(form.get("prompt")) });
+      const selectedFiles = form.getAll("media").filter((file): file is File => file instanceof File && file.size > 0);
+      const altText = String(form.get("altText") ?? "").trim();
+      if (selectedFiles.length && altText.length < 5) throw new Error("Lesson text was saved. Add a short description for the selected files, then save again to upload them.");
+      if (selectedFiles.length > 8) throw new Error("Lesson text was saved. Add no more than eight media files at a time.");
+      for (const file of selectedFiles) await uploadLessonMedia(classId, lesson.id, file, altText);
+      setSaved(true); router.refresh();
+    }
     catch (e) { setError(e instanceof Error ? e.message : "Unable to save."); } finally { setBusy(false); }
-  }}><label>Lesson title<input name="title" required minLength={3} maxLength={140} defaultValue={lesson.title} /></label><label>Lesson content<textarea name="content" rows={14} required minLength={50} maxLength={50000} defaultValue={lesson.content} /></label><label>Assignment instructions<textarea name="prompt" rows={4} required minLength={10} maxLength={5000} defaultValue={lesson.prompt} /></label><button className="learning-primary" disabled={busy}>{busy ? "Saving…" : "Save draft changes"}</button>{error && <p role="alert" className="form-error">{error}</p>}{saved && <p role="status">Draft saved.</p>}</form>;
+  }}><div className="grid gap-4 sm:grid-cols-2"><label>Topic<input name="topic" required minLength={2} maxLength={120} defaultValue={lesson.topic ?? "Getting started"} /></label><label>Subtopic<input name="subtopic" maxLength={160} defaultValue={lesson.subtopic ?? ""} /></label></div><label>Lesson title<input name="title" required minLength={3} maxLength={140} defaultValue={lesson.title} /></label><label>Lesson content<textarea name="content" rows={14} required minLength={50} maxLength={50000} defaultValue={lesson.content} /></label><label>Assignment instructions<textarea name="prompt" rows={4} required minLength={10} maxLength={5000} defaultValue={lesson.prompt} /></label><label>Add images or a video<input name="media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" multiple /><span className="field-hint">JPEG, PNG, or WebP up to 12 MiB; MP4 or WebM up to 64 MiB each.</span></label><label>Image description or video caption<input name="altText" maxLength={300} placeholder="Describe what the image explains or the video teaches" /></label><button className="learning-primary" disabled={busy}>{busy ? "Saving…" : "Save draft changes"}</button>{error && <p role="alert" className="form-error">{error}</p>}{saved && <p role="status">Draft saved.</p>}</form>;
 }

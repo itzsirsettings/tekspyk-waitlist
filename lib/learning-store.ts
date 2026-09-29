@@ -5,28 +5,32 @@ import { HttpError } from "@/lib/http";
 import { requireTeacher, type LearningUser } from "@/lib/learning-session";
 import { scoreQuiz, type LearningAction, type QuizQuestion } from "@/lib/learning-schema";
 import { aiFoundationsCourse } from "@/lib/ai-foundations-course";
+import { CT_THREE_MONTH, CT_SIX_MONTH, type CtMonth } from "@/lib/computer-training-data";
+import { explainTopic } from "@/lib/curriculum-explanations";
 
 export interface ClassSummary {
   id: string; slug: string; title: string; description: string; status: string;
+  subject: string; level: string;
   instructor: string; lesson_count: number; completed_count: number; enrolled: boolean;
   next_lesson_id?: string | null; next_lesson_title?: string | null;
 }
 export interface LessonSummary {
-  id: string; title: string; position: number; completed: boolean; assignment_id: string; grade: number | null;
+  id: string; title: string; topic: string; subtopic: string; position: number; completed: boolean; assignment_id: string; grade: number | null;
 }
+export interface LearningMedia { id: string; mime_type: string; original_name: string; alt_text: string; byte_size: number | string; }
 export interface Submission {
   id: string; body: string; answers: number[]; auto_score: number | null; grade: number | null;
   feedback: string; grading_source: string | null; version: number; submitted_at: string;
 }
 export interface LessonDetail {
-  id: string; title: string; content: string; class_title: string; class_slug: string; class_id: string;
+  id: string; title: string; topic: string; subtopic: string; content: string; media: LearningMedia[]; class_title: string; class_slug: string; class_id: string;
   assignment_id: string; kind: "written" | "quiz"; prompt: string;
   questions: Array<Omit<QuizQuestion, "correctIndex">>; completed: boolean; submission: Submission | null;
 }
 
 export async function learningCatalog(userId: string | null): Promise<ClassSummary[]> {
   const result = await getDatabasePool().query<ClassSummary>(
-    `SELECT c.id, c.slug, c.title, c.description, c.status, u.name AS instructor,
+    `SELECT c.id, c.slug, c.title, c.description, c.status, c.subject, c.level, u.name AS instructor,
       (SELECT count(*)::int FROM learning_lessons l WHERE l.class_id = c.id AND l.published) AS lesson_count,
       (SELECT count(*)::int FROM learning_progress p JOIN learning_lessons l ON l.id = p.lesson_id
         WHERE l.class_id = c.id AND l.published AND p.user_id = $1) AS completed_count,
@@ -49,7 +53,7 @@ export async function learningCatalog(userId: string | null): Promise<ClassSumma
 
 export async function learningClass(slug: string, user: LearningUser) {
   const found = await getDatabasePool().query<ClassSummary>(
-    `SELECT c.id, c.slug, c.title, c.description, c.status, u.name AS instructor,
+    `SELECT c.id, c.slug, c.title, c.description, c.status, c.subject, c.level, u.name AS instructor,
       EXISTS(SELECT 1 FROM learning_enrollments e WHERE e.class_id = c.id AND e.user_id = $2) AS enrolled
      FROM learning_classes c JOIN learning_users u ON u.id = c.instructor_id
      WHERE c.slug = $1 AND (c.status = 'published' OR c.instructor_id = $2 OR $3)`, [slug, user.id, user.role === "admin"],
@@ -57,7 +61,7 @@ export async function learningClass(slug: string, user: LearningUser) {
   if (!found.rows[0]) throw new HttpError(404, "Class not found.");
   const course = found.rows[0];
   const lessons = await getDatabasePool().query<LessonSummary>(
-    `SELECT l.id, l.title, l.position, a.id AS assignment_id, s.grade,
+    `SELECT l.id, l.title, l.topic, l.subtopic, l.position, a.id AS assignment_id, s.grade,
       EXISTS(SELECT 1 FROM learning_progress p WHERE p.lesson_id = l.id AND p.user_id = $2) AS completed
      FROM learning_lessons l JOIN learning_assignments a ON a.lesson_id = l.id
      LEFT JOIN learning_submissions s ON s.assignment_id = a.id AND s.user_id = $2
@@ -68,8 +72,10 @@ export async function learningClass(slug: string, user: LearningUser) {
 
 export async function learningLesson(lessonId: string, user: LearningUser): Promise<LessonDetail> {
   const result = await getDatabasePool().query<Omit<LessonDetail, "submission" | "questions"> & { questions: QuizQuestion[] }>(
-    `SELECT l.id, l.title, l.content, c.title AS class_title, c.slug AS class_slug, c.id AS class_id,
+    `SELECT l.id, l.title, l.topic, l.subtopic, l.content, c.title AS class_title, c.slug AS class_slug, c.id AS class_id,
       a.id AS assignment_id, a.kind, a.prompt, a.questions,
+      coalesce((SELECT jsonb_agg(jsonb_build_object('id', m.id, 'mime_type', m.mime_type, 'original_name', m.original_name, 'alt_text', m.alt_text, 'byte_size', m.byte_size) ORDER BY m.created_at)
+        FROM learning_media m WHERE m.lesson_id = l.id), '[]'::jsonb) AS media,
       EXISTS(SELECT 1 FROM learning_progress p WHERE p.lesson_id = l.id AND p.user_id = $2) AS completed
      FROM learning_lessons l JOIN learning_classes c ON c.id = l.class_id
      JOIN learning_assignments a ON a.lesson_id = l.id
@@ -99,15 +105,38 @@ async function audit(client: PoolClient, actorId: string, action: string, resour
     [randomUUID(), actorId, action, resourceId, JSON.stringify(details)]);
 }
 
+async function createComputerTrainingDraft(user: LearningUser, months: CtMonth[], duration: "3-month" | "6-month", client: PoolClient) {
+  requireTeacher(user);
+  const id = randomUUID();
+  const title = duration === "3-month" ? "Professional Computer Training: 3-month intensive" : "Professional Computer Training: 6-month comprehensive";
+  const description = duration === "3-month"
+    ? "A focused digital skills route through computer fundamentals, office productivity, design, coding, and a final practical project. Twelve weekly lessons are ready for teacher review."
+    : "A full digital skills path from computer fundamentals through office productivity, graphic design, web development, modern AI tools, workplace practice, and a capstone. Twenty-four weekly lessons are ready for teacher review.";
+  const slug = `computer-training-${duration}-${id.slice(0, 8)}`;
+  await client.query("INSERT INTO learning_classes (id, slug, title, description, instructor_id, subject, level) VALUES ($1, $2, $3, $4, $5, 'Digital skills', 'Beginner to advanced')", [id, slug, title, description, user.id]);
+  let position = 0;
+  for (const month of months) for (const week of month.weeks) {
+    const lessonId = randomUUID();
+    const concepts = week.topics.map((topic) => `- ${topic}: ${explainTopic(topic, week.title)}`).join("\n");
+    const practicals = week.practicals.map((practical) => `- ${practical}`).join("\n");
+    const content = `## What this week is about\n\n${week.title} builds practical confidence in ${week.topics.slice(0, 3).join(", ")}${week.topics.length > 3 ? `, and ${week.topics.length - 3} related skills` : ""}. Begin by understanding each concept, then follow the workshop steps and use the skill in a task you can review.\n\n## Key concepts\n\n${concepts}\n\n## Guided practice\n\n${practicals || "Choose a small task that uses the skills in this lesson. Work through it in order and check the final result."}${week.project ? `\n\n## Project checkpoint\n\n${week.project}` : ""}\n\n## Review your work\n\nCheck that your file or result opens, is named clearly, and is easy for another person to understand. Note one thing you found difficult and one skill you want to practise again.`;
+    const prompt = `Complete the practical activities for ${week.title}. Describe what you created or practised, list the steps you used, explain one concept in your own words, and state how you checked the result. Include the file name or a short description of the evidence your teacher should inspect.`;
+    await client.query("INSERT INTO learning_lessons (id, class_id, title, topic, subtopic, content, position) VALUES ($1, $2, $3, $4, $5, $6, $7)", [lessonId, id, week.title.replace(/^Week\s+\d+:\s*/i, ""), month.title.replace(/^Month\s+\d+\s*[–-]\s*/i, ""), week.title, content, position++]);
+    await client.query("INSERT INTO learning_assignments (id, lesson_id, kind, prompt, questions) VALUES ($1, $2, 'written', $3, '[]'::jsonb)", [randomUUID(), lessonId, prompt]);
+  }
+  await audit(client, user.id, "course_template_created", id, { template: `computer-training-${duration}`, lessonCount: position });
+  return { success: true, id, slug };
+}
+
 export async function applyLearningAction(user: LearningUser, input: LearningAction) {
   return withTransaction(async (client) => {
     switch (input.action) {
       case "update-lesson": {
         requireTeacher(user);
-        const found = await client.query<{class_id:string; status:string}>("SELECT l.class_id, c.status FROM learning_lessons l JOIN learning_classes c ON c.id = l.class_id WHERE l.id = $1 AND (c.instructor_id = $2 OR $3) FOR UPDATE OF c", [input.lessonId, user.id, user.role === "admin"]);
+        const found = await client.query<{class_id:string; status:string; published:boolean}>("SELECT l.class_id, c.status, l.published FROM learning_lessons l JOIN learning_classes c ON c.id = l.class_id WHERE l.id = $1 AND (c.instructor_id = $2 OR $3) FOR UPDATE OF c, l", [input.lessonId, user.id, user.role === "admin"]);
         if (!found.rows[0]) throw new HttpError(404, "Lesson not found.");
-        if (found.rows[0].status !== "draft") throw new HttpError(409, "Published lessons are fixed so existing submissions keep their original assignment.");
-        await client.query("UPDATE learning_lessons SET title = $2, content = $3 WHERE id = $1", [input.lessonId, input.title, input.content]);
+        if (found.rows[0].published) throw new HttpError(409, "Published lessons are fixed so existing submissions keep their original assignment.");
+        await client.query("UPDATE learning_lessons SET title = $2, topic = $3, subtopic = $4, content = $5 WHERE id = $1", [input.lessonId, input.title, input.topic, input.subtopic, input.content]);
         await client.query("UPDATE learning_assignments SET prompt = $2 WHERE lesson_id = $1", [input.lessonId, input.prompt]);
         await audit(client, user.id, "draft_lesson_updated", input.lessonId);
         return { success: true };
@@ -116,15 +145,19 @@ export async function applyLearningAction(user: LearningUser, input: LearningAct
         requireTeacher(user);
         const id = randomUUID();
         const slug = `ai-foundations-${id.slice(0, 8)}`;
-        await client.query("INSERT INTO learning_classes (id, slug, title, description, instructor_id) VALUES ($1, $2, $3, $4, $5)", [id, slug, aiFoundationsCourse.title, aiFoundationsCourse.description, user.id]);
+        await client.query("INSERT INTO learning_classes (id, slug, title, description, instructor_id, subject, level) VALUES ($1, $2, $3, $4, $5, 'AI Engineering', 'Beginner')", [id, slug, aiFoundationsCourse.title, aiFoundationsCourse.description, user.id]);
         for (const [position, lesson] of aiFoundationsCourse.lessons.entries()) {
           const lessonId = randomUUID();
-          await client.query("INSERT INTO learning_lessons (id, class_id, title, content, position) VALUES ($1, $2, $3, $4, $5)", [lessonId, id, lesson.title, lesson.content, position]);
+          await client.query("INSERT INTO learning_lessons (id, class_id, title, topic, subtopic, content, position) VALUES ($1, $2, $3, $4, $5, $6, $7)", [lessonId, id, lesson.title, lesson.topic ?? "AI engineering foundations", lesson.subtopic ?? "", lesson.content, position]);
           await client.query("INSERT INTO learning_assignments (id, lesson_id, kind, prompt, questions) VALUES ($1, $2, $3, $4, $5)", [randomUUID(), lessonId, lesson.kind, lesson.prompt, JSON.stringify(lesson.questions)]);
         }
         await audit(client, user.id, "course_template_created", id, { template: "ai-foundations-v1" });
         return { success: true, id, slug };
       }
+      case "create-computer-training-3m":
+        return createComputerTrainingDraft(user, CT_THREE_MONTH, "3-month", client);
+      case "create-computer-training-6m":
+        return createComputerTrainingDraft(user, CT_SIX_MONTH, "6-month", client);
       case "enroll": {
         const course = await client.query("SELECT id FROM learning_classes WHERE id = $1 AND status = 'published' FOR SHARE", [input.classId]);
         if (!course.rowCount) throw new HttpError(404, "Class not found.");
@@ -189,7 +222,7 @@ export async function applyLearningAction(user: LearningUser, input: LearningAct
         requireTeacher(user);
         const id = randomUUID();
         const slug = `${input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70) || "class"}-${id.slice(0, 8)}`;
-        await client.query("INSERT INTO learning_classes (id, slug, title, description, instructor_id) VALUES ($1, $2, $3, $4, $5)", [id, slug, input.title, input.description, user.id]);
+        await client.query("INSERT INTO learning_classes (id, slug, title, description, instructor_id, subject, level) VALUES ($1, $2, $3, $4, $5, $6, $7)", [id, slug, input.title, input.description, user.id, input.subject, input.level]);
         await audit(client, user.id, "class_created", id);
         return { success: true, id, slug };
       }
@@ -201,12 +234,30 @@ export async function applyLearningAction(user: LearningUser, input: LearningAct
         await audit(client, user.id, "class_published", input.classId);
         return { success: true };
       }
+      case "publish-lesson": {
+        requireTeacher(user);
+        const found = await client.query<{ status: string; published: boolean }>(
+          `SELECT c.status, l.published FROM learning_lessons l JOIN learning_classes c ON c.id = l.class_id
+           WHERE l.id = $1 AND (c.instructor_id = $2 OR $3) FOR UPDATE OF c, l`,
+          [input.lessonId, user.id, user.role === "admin"],
+        );
+        const lesson = found.rows[0];
+        if (!lesson) throw new HttpError(404, "Lesson not found.");
+        if (lesson.status !== "published") throw new HttpError(409, "Publish the class before publishing an additional lesson.");
+        if (!lesson.published) {
+          await client.query("UPDATE learning_lessons SET published = true WHERE id = $1", [input.lessonId]);
+          await audit(client, user.id, "lesson_published", input.lessonId);
+        }
+        return { success: true };
+      }
       case "create-lesson": {
         await ownClass(client, input.classId, user);
         if (input.kind === "quiz" && input.questions.length === 0) throw new HttpError(400, "Add at least one quiz question.");
-        const order = await client.query<{ position: number }>("SELECT coalesce(max(position), -1) + 1 AS position FROM learning_lessons WHERE class_id = $1", [input.classId]);
+        const order = await client.query<{ position: number; status: string }>("SELECT coalesce(max(l.position), -1) + 1 AS position, c.status FROM learning_classes c LEFT JOIN learning_lessons l ON l.class_id = c.id WHERE c.id = $1 GROUP BY c.id, c.status", [input.classId]);
+        if (!order.rowCount) throw new HttpError(404, "Class not found.");
         const id = randomUUID();
-        await client.query("INSERT INTO learning_lessons (id, class_id, title, content, position) VALUES ($1, $2, $3, $4, $5)", [id, input.classId, input.title, input.content, order.rows[0].position]);
+        const published = order.rows[0].status === "draft";
+        await client.query("INSERT INTO learning_lessons (id, class_id, title, topic, subtopic, content, position, published) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", [id, input.classId, input.title, input.topic, input.subtopic, input.content, order.rows[0].position, published]);
         await client.query("INSERT INTO learning_assignments (id, lesson_id, kind, prompt, questions) VALUES ($1, $2, $3, $4, $5)", [randomUUID(), id, input.kind, input.prompt, JSON.stringify(input.kind === "quiz" ? input.questions : [])]);
         await audit(client, user.id, "lesson_created", id);
         return { success: true, id };
@@ -229,14 +280,17 @@ export async function teachingClasses(user: LearningUser) {
 
 export async function teachingClass(id: string, user: LearningUser) {
   requireTeacher(user);
-  const courseResult = await getDatabasePool().query<{ id: string; slug: string; title: string; description: string; status: string }>(
-    "SELECT id, slug, title, description, status FROM learning_classes WHERE id = $1 AND (instructor_id = $2 OR $3)", [id, user.id, user.role === "admin"],
+  const courseResult = await getDatabasePool().query<{ id: string; slug: string; title: string; description: string; status: string; subject: string; level: string }>(
+    "SELECT id, slug, title, description, status, subject, level FROM learning_classes WHERE id = $1 AND (instructor_id = $2 OR $3)", [id, user.id, user.role === "admin"],
   );
   const course = courseResult.rows[0];
   if (!course) throw new HttpError(404, "Class not found.");
   const [lessons, submissions, roster] = await Promise.all([
-    getDatabasePool().query<{ id: string; title: string; content: string; prompt: string; kind: string; questions: QuizQuestion[] }>(
-      "SELECT l.id, l.title, l.content, a.prompt, a.kind, a.questions FROM learning_lessons l JOIN learning_assignments a ON a.lesson_id = l.id WHERE l.class_id = $1 ORDER BY l.position", [id]),
+    getDatabasePool().query<{ id: string; title: string; topic: string; subtopic: string; content: string; prompt: string; kind: string; published: boolean; questions: QuizQuestion[]; media: LearningMedia[] }>(
+      `SELECT l.id, l.title, l.topic, l.subtopic, l.content, l.published, a.prompt, a.kind, a.questions,
+       coalesce((SELECT jsonb_agg(jsonb_build_object('id', m.id, 'mime_type', m.mime_type, 'original_name', m.original_name, 'alt_text', m.alt_text, 'byte_size', m.byte_size) ORDER BY m.created_at)
+        FROM learning_media m WHERE m.lesson_id = l.id), '[]'::jsonb) AS media
+       FROM learning_lessons l JOIN learning_assignments a ON a.lesson_id = l.id WHERE l.class_id = $1 ORDER BY l.position`, [id]),
     getDatabasePool().query<Submission & { learner: string; lesson: string; kind: string; prompt: string; questions: QuizQuestion[] }>(
       `SELECT s.id, s.body, s.answers, s.auto_score, s.grade, s.feedback, s.grading_source, s.version, s.submitted_at::text,
         u.name AS learner, l.title AS lesson, a.kind, a.prompt, a.questions

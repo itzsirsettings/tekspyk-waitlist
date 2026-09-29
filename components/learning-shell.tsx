@@ -11,7 +11,7 @@ export function LearningShell({ user, active = "learn", children }: { user: Lear
       <nav aria-label="Learning navigation">
         <Link href="/learn" aria-current={active === "learn" ? "page" : undefined}><BookOpen size={18} aria-hidden="true" /> My learning</Link>
         {user.role !== "student" && <Link href="/teach" aria-current={active === "teach" ? "page" : undefined}><GraduationCap size={19} aria-hidden="true" /> Teaching</Link>}
-        <Link href="/#curriculum">Explore curriculum <ArrowUpRight size={15} aria-hidden="true" /></Link>
+        <Link href="/curriculum">Explore curriculum <ArrowUpRight size={15} aria-hidden="true" /></Link>
       </nav>
       <div className="learning-account"><span>{user.name}</span><SignOutButton /></div>
     </header>

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { checkServerIdentity } from "node:tls";
-import nextEnv = require("@next/env");
+import nextEnv from "@next/env";
 import pg from "pg";
 import { aiFoundationsCourse } from "../lib/ai-foundations-course";
 
