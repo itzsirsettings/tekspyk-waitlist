@@ -3,15 +3,15 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "You're on the list",
-  description: "Your place on the TekSpyk waitlist is reserved.",
+  title: "Registration request received",
+  description: "Your TekSpyk registration request was saved.",
   robots: { index: false },
 };
 
 const nextSteps = [
-  "Watch your inbox for a welcome note and launch updates.",
-  "You get first access when the founding cohort opens.",
-  "Share TekSpyk with a friend who learns by building.",
+  "Your registration request has been saved. Email delivery is not configured, so no confirmation message will be sent.",
+  "This request does not create a learner account or provide access to classes.",
+  "For questions, contact the TekSpyk team at hello@tekspyk.com.",
 ];
 
 export default function ThankYouPage() {
@@ -22,10 +22,10 @@ export default function ThankYouPage() {
           <CheckCircle2 className="h-10 w-10" aria-hidden="true" />
         </span>
         <h1 className="mt-6 text-4xl tracking-[-0.03em] sm:text-5xl">
-          You&apos;re on the list!
+          Request received
         </h1>
         <p className="mt-4 text-lg leading-8 text-ink-soft">
-          Your place on the TekSpyk waitlist is reserved. Here is what happens next.
+          Your TekSpyk registration request has been saved. Here is what to expect.
         </p>
         <ul className="mt-8 flex flex-col gap-3 text-left">
           {nextSteps.map((item, index) => (

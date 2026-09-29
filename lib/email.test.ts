@@ -33,6 +33,7 @@ describe("sendAdminNotification", () => {
       experienceLevel: "Intermediate",
       learningGoals: "Build faster with AI",
       newsletter: true,
+      adultConfirmed: true,
       termsAccepted: true,
       status: "pending",
       createdAt: "2025-01-01T00:00:00.000Z",

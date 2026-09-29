@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 
 export const metadata: Metadata = {
-  title: "Create Your TekSpyk Profile",
+  title: "TekSpyk Registration Request",
   description:
-    "Answer a few quick questions and reserve your place on the TekSpyk waitlist. Two minutes, no commitment.",
+    "Share your learning interests and submit a TekSpyk registration request. This form does not create a learner account.",
   robots: { index: false },
 };
 

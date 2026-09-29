@@ -8,7 +8,7 @@ The entire surface is a pre-launch marketing site plus a signup quiz. Design IS 
 
 ## Users and purpose
 
-Ambitious learners (students, working professionals, founders, career switchers) who want to learn AI-powered software engineering by shipping real products. They arrive from social links or word of mouth, skim the landing page on mobile or desktop, and decide in under a minute whether to join the waitlist.
+Ambitious learners (students, working professionals, founders, career switchers) who want to learn AI-powered software engineering by shipping real products. They arrive from social links or word of mouth, skim the landing page on mobile or desktop, and decide in under a minute whether to join us.
 
 Primary job: convince the visitor TekSpyk is a serious, premium academy and get them through the onboarding quiz to a completed waitlist signup.
 

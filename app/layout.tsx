@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Geist_Mono, Ubuntu } from "next/font/google";
 import "./globals.css";
+import { connection } from "next/server";
 
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
@@ -26,11 +27,11 @@ export const metadata: Metadata = {
     template: "%s | TekSpyk",
   },
   description:
-    "TekSpyk is the AI software engineering academy where you master AI, programming, and product delivery by shipping real applications. Join the waitlist.",
+    "TekSpyk is the AI software engineering academy where you master AI, programming, and product delivery by shipping real applications. Join us.",
   openGraph: {
     title: "TekSpyk | Learn AI by Building Real Software",
     description:
-      "Master AI, programming, and software engineering while building production-ready applications. Join the waitlist.",
+      "Master AI, programming, and software engineering while building production-ready applications. Join us.",
     url: "https://tekspyk.com",
     siteName: "TekSpyk",
     type: "website",
@@ -40,18 +41,19 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "TekSpyk | Learn AI by Building Real Software",
     description:
-      "Master AI, programming, and software engineering while building production-ready applications. Join the waitlist.",
+      "Master AI, programming, and software engineering while building production-ready applications. Join us.",
   },
   alternates: {
     canonical: "https://tekspyk.com",
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await connection();
   return (
     <html
       lang="en"

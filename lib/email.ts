@@ -1,102 +1,46 @@
-import { appendFile, mkdir } from "node:fs/promises";
-import path from "node:path";
 import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
 import type { WaitlistEntry } from "@/lib/waitlist-store";
 
-interface EmailLogEntry {
-  to: string;
-  subject: string;
-  sentAt: string;
-  provider: "smtp" | "local-ledger";
-}
+let cachedTransporter: Transporter | undefined;
 
-const EMAIL_LOG_PATH = path.join(process.cwd(), "data", "email-logs.jsonl");
-
-async function appendEmailLog(entry: EmailLogEntry) {
-  await mkdir(path.dirname(EMAIL_LOG_PATH), { recursive: true });
-  await appendFile(EMAIL_LOG_PATH, `${JSON.stringify(entry)}\n`, "utf8");
-}
-
-function getSmtpConfig() {
+function smtpConfiguration() {
   const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT;
+  const port = Number(process.env.SMTP_PORT);
   const user = process.env.SMTP_USER;
-  const password = process.env.SMTP_PASSWORD;
+  const pass = process.env.SMTP_PASSWORD;
   const from = process.env.SMTP_FROM;
-
-  if (!host || !port || !user || !password || !from) {
-    return null;
+  if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !user || !pass || !from) {
+    throw new Error("SMTP is not configured");
   }
-
-  return {
-    host,
-    port: Number(port),
-    secure: Number(port) === 465,
-    auth: { user, password },
-    from,
-  };
+  const localTest = process.env.NODE_ENV !== "production" && ["localhost", "127.0.0.1"].includes(host);
+  return { host, port, user, pass, from, localTest };
 }
 
-let cachedTransporter: nodemailer.Transporter | null = null;
-
-function getTransporter(config: NonNullable<ReturnType<typeof getSmtpConfig>>) {
-  if (!cachedTransporter) {
-    cachedTransporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: { user: config.auth.user, pass: config.auth.password },
-    });
-  }
-  return cachedTransporter;
-}
-
-async function sendEmail({
-  to,
-  subject,
-  text,
-}: {
-  to: string;
-  subject: string;
-  text: string;
-}) {
-  const config = getSmtpConfig();
-
-  if (config) {
-    try {
-      const transporter = getTransporter(config);
-      await transporter.sendMail({
-        from: config.from,
-        to,
-        subject,
-        text,
-      });
-      await appendEmailLog({ to, subject, sentAt: new Date().toISOString(), provider: "smtp" });
-      return;
-    } catch (error) {
-      console.error(`Failed to send email via SMTP to ${to}`, error);
-    }
-  }
-
-  await appendEmailLog({ to, subject, sentAt: new Date().toISOString(), provider: "local-ledger" });
+export async function sendTransactionalEmail({ to, subject, text }: { to: string; subject: string; text: string }) {
+  const config = smtpConfiguration();
+  cachedTransporter ??= nodemailer.createTransport({
+    host: config.host, port: config.port, secure: config.port === 465,
+    requireTLS: !config.localTest && config.port !== 465,
+    auth: { user: config.user, pass: config.pass },
+    connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 15_000,
+  });
+  await cachedTransporter.sendMail({ from: config.from, to, subject, text });
 }
 
 export async function sendWelcomeEmail(entry: WaitlistEntry) {
-  const subject = "You are on the TekSpyk launch list";
-  const text = `Hi ${entry.firstName},\n\nThanks for joining TekSpyk. We will be in touch with launch updates, early access opportunities, and curated learning resources.\n\nStay curious.\nThe TekSpyk team`;
-
-  await sendEmail({ to: entry.email, subject, text });
+  await sendTransactionalEmail({
+    to: entry.email, subject: "You are on the TekSpyk launch list",
+    text: `Hi ${entry.firstName},\n\nThanks for joining TekSpyk. We will be in touch with launch updates and early access opportunities.\n\nThe TekSpyk team`,
+  });
 }
 
-export async function sendAdminNotification(entry: WaitlistEntry) {
+export async function sendAdminNotification(_entry: WaitlistEntry) {
+  void _entry;
   const recipient = process.env.ADMIN_NOTIFICATION_EMAIL?.trim();
-
-  if (!recipient) {
-    return;
-  }
-
-  const subject = "New TekSpyk waitlist signup";
-  const text = `A new person joined the TekSpyk waitlist.\n\nName: ${entry.firstName} ${entry.lastName}\nEmail: ${entry.email}\nCountry: ${entry.country}\nOccupation: ${entry.occupation}\nExperience: ${entry.experienceLevel}\nGoals: ${entry.learningGoals}\nCreated: ${entry.createdAt}\n\nYou can review all signups in the admin dashboard.`;
-
-  await sendEmail({ to: recipient, subject, text });
+  if (!recipient) return;
+  await sendTransactionalEmail({
+    to: recipient, subject: "New TekSpyk waitlist signup",
+    text: "A new person joined the TekSpyk waitlist. Sign in to the admin dashboard to review the signup.",
+  });
 }

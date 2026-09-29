@@ -15,6 +15,7 @@ export interface WaitlistEntry {
   learningGoals: string;
   referralCode?: string;
   newsletter: boolean;
+  adultConfirmed: boolean;
   termsAccepted: boolean;
   status: "pending" | "confirmed" | "waitlisted";
   createdAt: string;
@@ -41,6 +42,7 @@ interface WaitlistRow {
   learning_goals: string;
   referral_code: string | null;
   newsletter: boolean;
+  adult_confirmed: boolean;
   terms_accepted: boolean;
   status: WaitlistEntry["status"];
   created_at: Date;
@@ -50,18 +52,14 @@ interface WaitlistRow {
 const entryColumns = `
   id, first_name, last_name, email, phone, country, occupation,
   experience_level, learning_goals, referral_code, newsletter,
-  terms_accepted, status, created_at, updated_at
+  adult_confirmed, terms_accepted, status, created_at, updated_at
 `;
-
-function toDate(value: Date | string): string {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
-}
 
 function toEntry(row: WaitlistRow): WaitlistEntry {
   const toISO = (val: unknown): string => {
     if (val instanceof Date) return val.toISOString();
     if (typeof val === "string" || typeof val === "number") return new Date(val).toISOString();
-    return new Date().toISOString();
+    throw new Error("Invalid waitlist timestamp");
   };
 
   return {
@@ -76,6 +74,7 @@ function toEntry(row: WaitlistRow): WaitlistEntry {
     learningGoals: row.learning_goals,
     referralCode: row.referral_code ?? undefined,
     newsletter: row.newsletter,
+    adultConfirmed: row.adult_confirmed,
     termsAccepted: row.terms_accepted,
     status: row.status,
     createdAt: toISO(row.created_at),
@@ -97,6 +96,7 @@ export async function createWaitlistEntry(values: WaitlistSubmission) {
     learningGoals: values.learningGoals.trim(),
     referralCode: values.referralCode?.trim() || undefined,
     newsletter: values.newsletter,
+    adultConfirmed: values.adultConfirmed,
     termsAccepted: values.termsAccepted,
     status: "pending",
     createdAt: now,
@@ -106,7 +106,7 @@ export async function createWaitlistEntry(values: WaitlistSubmission) {
   try {
     await getDatabasePool().query(
       `INSERT INTO waitlist_entries (${entryColumns})
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
       [
         entry.id,
         entry.firstName,
@@ -119,6 +119,7 @@ export async function createWaitlistEntry(values: WaitlistSubmission) {
         entry.learningGoals,
         entry.referralCode ?? null,
         entry.newsletter,
+        entry.adultConfirmed,
         entry.termsAccepted,
         entry.status,
         entry.createdAt,
@@ -132,8 +133,11 @@ export async function createWaitlistEntry(values: WaitlistSubmission) {
     throw error;
   }
 
-  // The signup is already safe in Supabase. Email failures must not reject it.
-  await Promise.allSettled([sendWelcomeEmail(entry), sendAdminNotification(entry)]);
+  // The signup is already persisted. Email failures must not reject it.
+  const emailResults = await Promise.allSettled([sendWelcomeEmail(entry), sendAdminNotification(entry)]);
+  if (emailResults.some((result) => result.status === "rejected")) {
+    console.error(JSON.stringify({ event: "waitlist_email_failed", entryId: entry.id }));
+  }
   return entry;
 }
 
@@ -163,18 +167,20 @@ export async function getWaitlistStats(): Promise<WaitlistStats> {
 }
 
 function escapeCsv(value: string | boolean | undefined) {
-  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+  const text = String(value ?? "");
+  const safe = /^[\s]*[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${safe.replaceAll('"', '""')}"`;
 }
 
 export async function exportWaitlistCsv() {
   const entries = await listWaitlistEntries();
   const headers = [
     "id", "firstName", "lastName", "email", "phone", "country", "occupation", "experienceLevel",
-    "learningGoals", "referralCode", "newsletter", "termsAccepted", "status", "createdAt",
+    "learningGoals", "referralCode", "newsletter", "adultConfirmed", "termsAccepted", "status", "createdAt",
   ];
   const rows = entries.map((entry) => [
     entry.id, entry.firstName, entry.lastName, entry.email, entry.phone, entry.country, entry.occupation,
-    entry.experienceLevel, entry.learningGoals, entry.referralCode, entry.newsletter, entry.termsAccepted,
+    entry.experienceLevel, entry.learningGoals, entry.referralCode, entry.newsletter, entry.adultConfirmed, entry.termsAccepted,
     entry.status, entry.createdAt,
   ]);
 

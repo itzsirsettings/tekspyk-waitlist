@@ -14,6 +14,7 @@ describe("waitlistSchema", () => {
       learningGoals: "Build AI products",
       referralCode: "TEKSPYK10",
       newsletter: true,
+      adultConfirmed: true,
       termsAccepted: true,
     });
 
@@ -32,6 +33,7 @@ describe("waitlistSchema", () => {
       learningGoals: "",
       referralCode: "",
       newsletter: false,
+      adultConfirmed: false,
       termsAccepted: false,
     });
 
@@ -39,6 +41,7 @@ describe("waitlistSchema", () => {
     if (!parsed.success) {
       expect(parsed.error.issues.some((issue) => issue.path.includes("email"))).toBe(true);
       expect(parsed.error.issues.some((issue) => issue.path.includes("termsAccepted"))).toBe(true);
+      expect(parsed.error.issues.some((issue) => issue.path.includes("adultConfirmed"))).toBe(true);
     }
   });
 });

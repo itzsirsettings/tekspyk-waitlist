@@ -14,6 +14,12 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Separate Remotion sub-project with its own dependencies and lint scope.
     "video/**",
+    ".agents/**",
+    ".claude/**",
+    "test-results/**",
+    "playwright-report/**",
+    ".railway-secrets/**",
+    "artifacts/**",
   ]),
 ]);
 

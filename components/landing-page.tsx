@@ -6,25 +6,54 @@ import {
   ChevronDown,
   Cloud,
   Code2,
-  Compass,
-  Eye,
-  GitBranch,
-  Hammer,
   LineChart,
   Play,
-  Rocket,
   ShieldCheck,
   Smartphone,
   Sparkles,
-  TestTube2,
   Workflow,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ComponentType, type FormEvent } from "react";
+import { useEffect, useState, type ComponentType, type FormEvent, type FocusEvent } from "react";
 import { useRouter } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import { LogoMark } from "@/components/logo";
+import { CurriculumExplorer } from "@/components/curriculum-explorer";
+import { ComputerTrainingExplorer } from "@/components/computer-training-explorer";
+import type { CurriculumTopicState } from "@/lib/curriculum-store";
+
+interface LandingPageProps {
+  topicStates?: Record<string, CurriculumTopicState>;
+}
+
+const HERO_SLIDE_INTERVAL_MS = 6000;
+const heroSlides = [
+  {
+    heading: "Learn AI by Building Real Software",
+    description: "Master AI, programming, and software engineering while building production-ready applications.",
+  },
+  {
+    heading: "Turn curiosity into things that work.",
+    description: "One TekSpyk profile connects your classes, builds, and progress in a focused workspace made for software learners.",
+  },
+  {
+    heading: "Learn by doing, not just watching.",
+    description: "Practice through lessons, assignments, and projects across AI engineering and computer training.",
+  },
+  {
+    heading: "Choose your path. Build at your pace.",
+    description: "Explore self-paced AI software lessons or TekSpyk’s structured 3-month and 6-month Computer Training programs.",
+  },
+  {
+    heading: "Put every lesson into practice.",
+    description: "Complete practical assignments and projects as you develop skills in software, digital productivity, and more.",
+  },
+  {
+    heading: "See how far\nyou’ve come.",
+    description: "Track your classes, completed lessons, assignments, feedback, and grades in one focused workspace.",
+  },
+];
 
 interface IconProps {
   className?: string;
@@ -65,24 +94,7 @@ const tracks: Track[] = [
   { title: "Video and Image Generation", description: "Create media pipelines powered by generative AI models.", icon: Play, comingSoon: true },
 ];
 
-interface LoopPhase {
-  name: string;
-  detail: string;
-  icon: ComponentType<IconProps>;
-  image: string;
-}
 
-const loopPhases: LoopPhase[] = [
-  { name: "Plan", detail: "Turn an idea into a scoped product brief with AI as your planning partner.", icon: Compass, image: "/images/phases/plan.svg" },
-  { name: "Design", detail: "Shape interfaces and architecture before a single line of code.", icon: Eye, image: "/images/phases/design.svg" },
-  { name: "Code", detail: "Write real code with AI assistance and understand every line you ship.", icon: Code2, image: "/images/phases/code.svg" },
-  { name: "Build", detail: "Assemble features into a working product with modern tooling.", icon: Hammer, image: "/images/phases/build.svg" },
-  { name: "Test", detail: "Prove your product works with automated tests and quality gates.", icon: TestTube2, image: "/images/phases/test.svg" },
-  { name: "Release", detail: "Cut clean releases with version control and review discipline.", icon: GitBranch, image: "/images/phases/release.svg" },
-  { name: "Deploy", detail: "Push to real cloud infrastructure that serves real users.", icon: Rocket, image: "/images/phases/deploy.svg" },
-  { name: "Operate", detail: "Run your product in production and handle what the real world throws at it.", icon: Cloud, image: "/images/phases/operate.svg" },
-  { name: "Monitor", detail: "Watch performance, errors, and usage so you improve what matters.", icon: LineChart, image: "/images/phases/monitor.svg" },
-];
 
 const faqs = [
   {
@@ -106,23 +118,23 @@ const faqs = [
       "AI fundamentals, prompt engineering, programming, web and mobile development, SaaS products, AI agents, automation, DevOps, cloud, testing, security, product management, UI and UX, deployment, and monitoring.",
   },
   {
-    question: "When does TekSpyk launch?",
+    question: "How do I register my interest?",
     answer:
-      "The founding cohort opens soon. Waitlist members get first access, launch updates, and early resources before public enrollment.",
+      "Complete the short registration form. It records your learning interests and contact details so the TekSpyk team can review your request.",
   },
   {
-    question: "What does joining the waitlist commit me to?",
+    question: "Does this form create a learner account?",
     answer:
-      "Nothing. Joining reserves your place and keeps you informed. You decide later whether to enroll when the doors open.",
+      "No. This form submits a registration request; it does not create a learner account or enroll you in a class.",
   },
 ];
 
-const avatarSeeds = [
-  { initials: "KA", hue: "oklch(70% 0.14 262)" },
-  { initials: "JO", hue: "oklch(70% 0.14 160)" },
-  { initials: "MT", hue: "oklch(70% 0.14 30)" },
-  { initials: "SN", hue: "oklch(70% 0.14 300)" },
-  { initials: "DL", hue: "oklch(70% 0.14 220)" },
+const learnerAvatars = [
+  "/avatars/learner-01.webp",
+  "/avatars/learner-02.webp",
+  "/avatars/learner-03.webp",
+  "/avatars/learner-04.webp",
+  "/avatars/learner-05.webp",
 ];
 
 function ProjectCard({ project }: { project: ConceptProject }) {
@@ -154,233 +166,44 @@ function ProjectCard({ project }: { project: ConceptProject }) {
   );
 }
 
-function PhaseList({
-  active,
-  onSelect,
-}: {
-  active: number;
-  onSelect: (index: number) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      {loopPhases.map((item, index) => {
-        const isActive = index === active;
-        return (
-          <button
-            key={item.name}
-            type="button"
-            onClick={() => onSelect(index)}
-            aria-pressed={isActive}
-            className={`group flex items-baseline gap-4 rounded-xl border-l-0 px-4 py-3 text-left transition-colors ${
-              isActive ? "bg-surface" : "hover:bg-surface/60"
-            }`}
-          >
-            <span
-              className={`text-sm font-bold tabular-nums ${isActive ? "text-blue" : "text-ink-faint"}`}
-            >
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span className="flex-1">
-              <span className={`block text-lg font-bold ${isActive ? "text-blue" : "text-ink"}`}>
-                {item.name}
-              </span>
-              <span
-                className={`block overflow-hidden text-sm text-ink-soft transition-all duration-300 ${
-                  isActive ? "mt-1 max-h-16 opacity-100" : "max-h-0 opacity-0"
-                }`}
-              >
-                {item.detail}
-              </span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-type LoopPoint = { x: number; y: number };
-
-function buildLoopPath(points: LoopPoint[], width: number, height: number) {
-  if (points.length < 9 || width === 0 || height === 0) return "";
-  const [p0, p1, p2, , , p5, , , p8] = points;
-  const p3 = points[3];
-  const p4 = points[4];
-  const p6 = points[6];
-  const p7 = points[7];
-  const turn = Math.min(width, height) * 0.16;
-
-  return [
-    `M ${p0.x} ${p0.y}`,
-    `L ${p1.x} ${p1.y}`,
-    `L ${p2.x} ${p2.y}`,
-    `Q ${p2.x + turn} ${(p2.y + p5.y) / 2} ${p5.x} ${p5.y}`,
-    `L ${p4.x} ${p4.y}`,
-    `L ${p3.x} ${p3.y}`,
-    `Q ${p3.x - turn} ${(p3.y + p6.y) / 2} ${p6.x} ${p6.y}`,
-    `L ${p7.x} ${p7.y}`,
-    `L ${p8.x} ${p8.y}`,
-    `C ${p8.x} ${p8.y + height * 0.26}, ${p0.x - width * 0.24} ${p0.y + height * 0.1}, ${p0.x} ${p0.y}`,
-  ].join(" ");
-}
-
-function PhaseGrid({
-  active,
-  onSelect,
-}: {
-  active: number;
-  onSelect: (index: number) => void;
-}) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const cellRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [path, setPath] = useState("");
+export function LandingPage({ topicStates = {} }: LandingPageProps) {
+  const router = useRouter();
+  const [registrationEmail, setRegistrationEmail] = useState("");
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const [isHeroHovered, setIsHeroHovered] = useState(false);
+  const [isHeroFocused, setIsHeroFocused] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const measure = () => {
-      const containerRect = container.getBoundingClientRect();
-      const points = cellRefs.current.map((cell) => {
-        if (!cell) return { x: 0, y: 0 };
-        const rect = cell.getBoundingClientRect();
-        return {
-          x: rect.left - containerRect.left + rect.width / 2,
-          y: rect.top - containerRect.top + rect.height / 2,
-        };
-      });
-      setPath(buildLoopPath(points, containerRect.width, containerRect.height));
-    };
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(container);
-    return () => observer.disconnect();
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    syncPreference();
+    mediaQuery.addEventListener("change", syncPreference);
+    return () => mediaQuery.removeEventListener("change", syncPreference);
   }, []);
 
-  return (
-    <div ref={containerRef} className="relative px-2 pb-10">
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient id="loop-connector-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--blue)" />
-            <stop offset="33%" stopColor="var(--yellow)" />
-            <stop offset="66%" stopColor="var(--red)" />
-            <stop offset="100%" stopColor="var(--blue)" />
-          </linearGradient>
-        </defs>
-        {path ? (
-          <>
-            <path
-              d={path}
-              fill="none"
-              stroke="var(--line)"
-              strokeWidth={2}
-              strokeLinecap="round"
-            />
-            <path
-              id="loop-connector-path"
-              d={path}
-              fill="none"
-              stroke="url(#loop-connector-gradient)"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeDasharray="16 12"
-              className="loop-connector-flow"
-            />
-            {[0, 0.33, 0.66].map((offset) => (
-              <circle key={offset} r={5} fill="var(--blue)" className="loop-connector-dot">
-                <animateMotion dur="6s" begin={`${offset * -6}s`} repeatCount="indefinite">
-                  <mpath href="#loop-connector-path" />
-                </animateMotion>
-              </circle>
-            ))}
-          </>
-        ) : null}
-      </svg>
-      <div className="relative grid grid-cols-3 gap-4 sm:gap-6">
-        {loopPhases.map((item, index) => {
-          const isActive = index === active;
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.name}
-              ref={(node) => {
-                cellRefs.current[index] = node;
-              }}
-              type="button"
-              onClick={() => onSelect(index)}
-              aria-pressed={isActive}
-              aria-label={`${item.name}: ${item.detail}`}
-              className={`glow-border relative flex flex-col overflow-hidden rounded-2xl border bg-white transition-transform hover:-translate-y-0.5 ${
-                isActive ? "border-blue ring-2 ring-blue ring-offset-2" : "border-line"
-              }`}
-            >
-              <span className="relative block aspect-square w-full">
-                <Image
-                  src={item.image}
-                  alt={`Illustration of the ${item.name} phase: ${item.detail}`}
-                  fill
-                  sizes="(min-width: 1024px) 20vw, 33vw"
-                  className="object-cover"
-                />
-              </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-2">
-                <Icon className={`h-3.5 w-3.5 shrink-0 ${isActive ? "text-blue" : "text-ink-faint"}`} aria-hidden="true" />
-                <span className={`truncate text-xs font-bold ${isActive ? "text-blue" : "text-ink"}`}>
-                  {item.name}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function CurriculumSection() {
-  const [active, setActive] = useState(0);
-  const [pinned, setPinned] = useState(false);
-
   useEffect(() => {
-    if (pinned) return;
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) return;
-    const timer = setInterval(() => {
-      setActive((current) => (current + 1) % loopPhases.length);
-    }, 2800);
-    return () => clearInterval(timer);
-  }, [pinned]);
+    if (isHeroHovered || isHeroFocused || prefersReducedMotion) return;
+    const timer = window.setInterval(() => {
+      setHeroSlideIndex((index) => (index + 1) % heroSlides.length);
+    }, HERO_SLIDE_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [isHeroHovered, isHeroFocused, prefersReducedMotion]);
 
-  const handleSelect = (index: number) => {
-    setActive(index);
-    setPinned(true);
+  const handleHeroBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsHeroFocused(false);
+    }
   };
 
-  return (
-    <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] lg:items-center">
-      <PhaseList active={active} onSelect={handleSelect} />
-      <PhaseGrid active={active} onSelect={handleSelect} />
-    </div>
-  );
-}
-
-export function LandingPage() {
-  const router = useRouter();
-  const [newsletterEmail, setNewsletterEmail] = useState("");
-
   const goToOnboarding = (source: string) => {
-    trackEvent("waitlist_cta_clicked", { source });
+    trackEvent("registration_cta_clicked", { source });
   };
 
   const handleNewsletterSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    trackEvent("waitlist_cta_clicked", { source: "footer_newsletter" });
-    const query = newsletterEmail.trim() ? `?email=${encodeURIComponent(newsletterEmail.trim())}` : "";
+    trackEvent("registration_cta_clicked", { source: "footer_registration" });
+    const query = registrationEmail.trim() ? `?email=${encodeURIComponent(registrationEmail.trim())}` : "";
     router.push(`/onboarding${query}`);
   };
 
@@ -388,6 +211,9 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-bg text-ink">
+      <a href="#main-content" className="sr-only z-50 rounded bg-white p-3 text-blue focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+        Skip to main content
+      </a>
       <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
           <Link href="/" className="inline-flex items-center">
@@ -395,43 +221,98 @@ export function LandingPage() {
           </Link>
           <nav aria-label="Main navigation" className="hidden items-center gap-7 text-sm font-medium text-ink-soft md:flex">
             <a href="#projects" className="transition-colors hover:text-ink">Projects</a>
+            <a href="#programs" className="transition-colors hover:text-ink">Programs</a>
             <a href="#curriculum" className="transition-colors hover:text-ink">Curriculum</a>
             <a href="#tracks" className="transition-colors hover:text-ink">What You Learn</a>
             <a href="#faqs" className="transition-colors hover:text-ink">FAQs</a>
           </nav>
+          <details className="relative md:hidden">
+            <summary className="cursor-pointer list-none rounded-full border border-line px-4 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">
+              Menu
+            </summary>
+            <nav aria-label="Mobile navigation" className="absolute right-0 top-12 z-50 flex w-56 flex-col gap-1 rounded-xl border border-line bg-white p-2 text-sm shadow-lg">
+              <a className="rounded-lg px-3 py-2 hover:bg-surface" href="#projects">Projects</a>
+              <a className="rounded-lg px-3 py-2 hover:bg-surface" href="#programs">Programs</a>
+              <a className="rounded-lg px-3 py-2 hover:bg-surface" href="#curriculum">Curriculum</a>
+              <a className="rounded-lg px-3 py-2 hover:bg-surface" href="#tracks">What You Learn</a>
+              <a className="rounded-lg px-3 py-2 hover:bg-surface" href="#faqs">FAQs</a>
+            </nav>
+          </details>
           <Link
-            href="/onboarding"
-            onClick={() => goToOnboarding("nav")}
+            href="/learn"
             className="glow-border inline-flex items-center gap-1.5 rounded-full bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-deep"
           >
-            Join Waitlist
+            Learning portal
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </header>
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section className="hero-wash">
           <div className="mx-auto flex max-w-4xl flex-col items-center px-5 pb-16 pt-16 text-center sm:pt-24">
             <p className="glow-border inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm shadow-[0_2px_14px_rgba(37,99,235,0.10)]">
               <span>
-                New: <span className="font-semibold text-pink">Founding cohort</span> applications are open!
+                Explore TekSpyk programs and submit a registration request.
               </span>
               <Link
                 href="/onboarding"
                 onClick={() => goToOnboarding("announcement")}
                 className="font-semibold text-blue transition-colors hover:text-blue-deep"
               >
-                Join now <ArrowRight className="inline h-3.5 w-3.5" />
+                Register <ArrowRight className="inline h-3.5 w-3.5" />
               </Link>
             </p>
 
-            <h1 className="text-hero mt-8 text-[clamp(2.6rem,1.3rem+5vw,4.5rem)] leading-[1.05] tracking-[-0.03em]">
-              Learn AI by Building Real Software
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-7 text-ink-soft sm:text-xl sm:leading-8">
-              Master AI, programming, and software engineering while building production-ready applications.
-            </p>
+            <div
+              role="region"
+              aria-roledescription="carousel"
+              aria-label="TekSpyk learning highlights. Rotation pauses while this area is focused or hovered."
+              aria-live="off"
+              tabIndex={0}
+              className="w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue"
+              onMouseEnter={() => setIsHeroHovered(true)}
+              onMouseLeave={() => setIsHeroHovered(false)}
+              onFocusCapture={() => setIsHeroFocused(true)}
+              onBlurCapture={handleHeroBlur}
+            >
+              <h1 className="text-hero mt-8 grid w-full max-w-4xl grid-cols-1 overflow-hidden whitespace-pre-line text-[clamp(2.6rem,1.3rem+5vw,4.5rem)] leading-[1.05] tracking-[-0.03em]">
+                {heroSlides.map((slide, index) => (
+                  <span
+                    key={slide.heading}
+                    aria-hidden={index !== heroSlideIndex}
+                    className="col-start-1 row-start-1 block w-full transition-[opacity,transform,filter] duration-700 ease-out motion-reduce:transition-none"
+                    style={{
+                      opacity: index === heroSlideIndex ? 1 : 0,
+                      transform: index === heroSlideIndex ? "translateY(0) scale(1)" : "translateY(0.75rem) scale(0.97)",
+                      filter: index === heroSlideIndex ? "blur(0)" : "blur(7px)",
+                      transitionDuration: prefersReducedMotion ? "0ms" : "700ms",
+                      zIndex: index === heroSlideIndex ? 1 : 0,
+                    }}
+                  >
+                    {slide.heading}
+                  </span>
+                ))}
+              </h1>
+              <p className="mt-6 grid w-full max-w-2xl grid-cols-1 overflow-hidden text-lg leading-7 text-ink-soft sm:text-xl sm:leading-8">
+                {heroSlides.map((slide, index) => (
+                  <span
+                    key={slide.heading}
+                    aria-hidden={index !== heroSlideIndex}
+                    className="col-start-1 row-start-1 block w-full transition-[opacity,transform,filter] duration-700 ease-out motion-reduce:transition-none"
+                    style={{
+                      opacity: index === heroSlideIndex ? 1 : 0,
+                      transform: index === heroSlideIndex ? "translateY(0) scale(1)" : "translateY(0.75rem) scale(0.97)",
+                      filter: index === heroSlideIndex ? "blur(0)" : "blur(7px)",
+                      transitionDuration: prefersReducedMotion ? "0ms" : "700ms",
+                      zIndex: index === heroSlideIndex ? 1 : 0,
+                    }}
+                  >
+                    {slide.description}
+                  </span>
+                ))}
+              </p>
+            </div>
 
             <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row">
               <Link
@@ -439,7 +320,7 @@ export function LandingPage() {
                 onClick={() => goToOnboarding("hero")}
                 className="glow-border inline-flex items-center gap-2 rounded-xl bg-blue px-7 py-3.5 text-base font-semibold text-white shadow-[0_10px_30px_rgba(37,99,235,0.30)] transition-all hover:-translate-y-0.5 hover:bg-blue-deep"
               >
-                Join the Waitlist
+                Start registration
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <a
@@ -449,20 +330,22 @@ export function LandingPage() {
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white">
                   <Play className="h-3.5 w-3.5 fill-current" />
                 </span>
-                Watch Preview
+                Explore curriculum
               </a>
             </div>
 
             <div className="mt-10 flex items-center gap-3">
               <div className="flex -space-x-2.5" aria-hidden="true">
-                {avatarSeeds.map((avatar) => (
-                  <span
-                    key={avatar.initials}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-[10px] font-bold text-white"
-                    style={{ background: avatar.hue }}
-                  >
-                    {avatar.initials}
-                  </span>
+                {learnerAvatars.map((src) => (
+                  <Image
+                    key={src}
+                    src={src}
+                    alt=""
+                    width={36}
+                    height={36}
+                    sizes="32px"
+                    className="h-8 w-8 rounded-full border-2 border-white object-cover"
+                  />
                 ))}
               </div>
               <p className="text-sm text-ink-soft">Built for ambitious learners, wherever they are.</p>
@@ -541,6 +424,65 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* Program Selector */}
+        <section id="programs" aria-labelledby="programs-heading" className="py-[clamp(4rem,3rem+4vw,7rem)]">
+          <div className="mx-auto max-w-6xl px-5">
+            <div className="max-w-2xl">
+              <h2 id="programs-heading" className="text-[clamp(1.85rem,1.2rem+2.4vw,2.75rem)] tracking-[-0.02em]">
+                Choose Your Program
+              </h2>
+              <p className="mt-3 text-lg text-ink-soft">
+                Two distinct programs built for different starting points. Both lead to real, deployable skills.
+              </p>
+            </div>
+            <div className="mt-10 grid gap-6 sm:grid-cols-2">
+              <a
+                href="#curriculum"
+                className="glow-border group flex flex-col rounded-2xl border border-line bg-white p-6 transition-shadow hover:shadow-[0_14px_40px_rgba(15,23,42,0.08)]"
+              >
+                <div className="flex items-start justify-between">
+                  <span className="inline-flex rounded-xl bg-blue/10 p-3 text-blue">
+                    <Sparkles className="h-6 w-6" />
+                  </span>
+                  <span className="rounded-full bg-blue/10 px-3 py-1 text-xs font-semibold text-blue">
+                    Advanced
+                  </span>
+                </div>
+                <h3 className="mt-5 text-xl">AI Engineering Program</h3>
+                <p className="mt-2 flex-1 text-sm leading-6 text-ink-soft">
+                  AI-powered software engineering. Plan, build, test, deploy, and monitor real products using AI as your accelerator.
+                </p>
+                <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-blue transition-colors group-hover:text-blue-deep">
+                  Explore curriculum
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </a>
+
+              <a
+                href="#computer-training"
+                className="glow-border group flex flex-col rounded-2xl border border-line bg-white p-6 transition-shadow hover:shadow-[0_14px_40px_rgba(15,23,42,0.08)]"
+              >
+                <div className="flex items-start justify-between">
+                  <span className="inline-flex rounded-xl bg-blue/10 p-3 text-blue">
+                    <Code2 className="h-6 w-6" />
+                  </span>
+                  <span className="rounded-full bg-surface-deep px-3 py-1 text-xs font-semibold text-ink-soft">
+                    Beginner → Advanced
+                  </span>
+                </div>
+                <h3 className="mt-5 text-xl">Computer Training Program</h3>
+                <p className="mt-2 flex-1 text-sm leading-6 text-ink-soft">
+                  From computer basics to professional web development. Microsoft Office, graphic design, coding, and cybersecurity in one structured program.
+                </p>
+                <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-blue transition-colors group-hover:text-blue-deep">
+                  Explore curriculum
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </a>
+            </div>
+          </div>
+        </section>
+
         <section id="curriculum" aria-labelledby="curriculum-heading" className="py-[clamp(4rem,3rem+4vw,7rem)]">
           <div className="mx-auto max-w-6xl px-5">
             <div className="max-w-2xl">
@@ -552,12 +494,29 @@ export function LandingPage() {
               </p>
             </div>
             <div className="mt-12">
-              <CurriculumSection />
+              <CurriculumExplorer topicStates={topicStates} />
             </div>
           </div>
         </section>
 
-        <section aria-labelledby="path-heading" className="bg-surface py-[clamp(4rem,3rem+4vw,7rem)]">
+        {/* Computer Training Program */}
+        <section id="computer-training" aria-labelledby="ct-heading" className="bg-surface py-[clamp(4rem,3rem+4vw,7rem)]">
+          <div className="mx-auto max-w-6xl px-5">
+            <div className="max-w-2xl">
+              <h2 id="ct-heading" className="text-[clamp(1.85rem,1.2rem+2.4vw,2.75rem)] tracking-[-0.02em]">
+                Computer Training Program
+              </h2>
+              <p className="mt-3 text-lg text-ink-soft">
+                A structured path from computer basics to web development. Choose the 3-month intensive or the 6-month comprehensive program.
+              </p>
+            </div>
+            <div className="mt-12">
+              <ComputerTrainingExplorer topicStates={topicStates} />
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="path-heading" className="py-[clamp(4rem,3rem+4vw,7rem)]">
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 lg:grid-cols-2">
             <div>
               <h2 id="path-heading" className="text-[clamp(1.85rem,1.2rem+2.4vw,2.75rem)] tracking-[-0.02em]">
@@ -571,7 +530,7 @@ export function LandingPage() {
                 onClick={() => goToOnboarding("path")}
                 className="glow-border mt-8 inline-flex items-center gap-2 rounded-xl bg-blue px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-blue-deep"
               >
-                Join the Waitlist
+                Start registration
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -619,29 +578,29 @@ export function LandingPage() {
           <div className="glow-border mx-auto max-w-6xl rounded-3xl bg-ink px-6 py-14 text-center text-white sm:py-20">
             <p className="text-sm font-semibold text-white/60">TekSpyk</p>
             <h2 id="cta-heading" className="mt-3 text-[clamp(1.9rem,1.2rem+3vw,3.25rem)] tracking-[-0.02em]">
-              Start Building Today!
+              Start your registration
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-white/70">
-              Join ambitious builders who are learning AI by shipping real software with TekSpyk.
+              Submit a registration request to share the learning path you are interested in.
             </p>
             <Link
               href="/onboarding"
               onClick={() => goToOnboarding("footer_cta")}
               className="glow-border mt-8 inline-flex items-center gap-2 rounded-xl bg-blue px-7 py-3.5 text-base font-semibold text-white transition-colors hover:bg-blue-deep"
             >
-              Join the Waitlist
+              Start registration
               <ArrowRight className="h-4 w-4" />
             </Link>
 
             <form onSubmit={handleNewsletterSubmit} className="mx-auto mt-12 flex max-w-md flex-col gap-3 sm:flex-row">
-              <label htmlFor="newsletter-email" className="sr-only">
+              <label htmlFor="registration-email" className="sr-only">
                 Email address
               </label>
               <input
-                id="newsletter-email"
+                id="registration-email"
                 type="email"
-                value={newsletterEmail}
-                onChange={(event) => setNewsletterEmail(event.target.value)}
+                value={registrationEmail}
+                onChange={(event) => setRegistrationEmail(event.target.value)}
                 placeholder="Email address"
                 autoComplete="email"
                 className="h-12 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 text-white placeholder:text-white/60 focus:border-white/40 focus:outline-none"
@@ -650,11 +609,11 @@ export function LandingPage() {
                 type="submit"
                 className="h-12 rounded-xl bg-white px-6 font-semibold text-ink transition-colors hover:bg-white/90"
               >
-                Join
+                Continue
               </button>
             </form>
             <p className="mx-auto mt-4 max-w-md text-sm text-white/50">
-              Get launch updates, learning resources, and early access opportunities. We start your signup with this email.
+              Your email will be prefilled in the registration form. Submitting it sends a request; it does not create an account.
             </p>
           </div>
         </section>
@@ -672,6 +631,7 @@ export function LandingPage() {
             <p className="font-semibold">Quick Navigation</p>
             <ul className="mt-3 flex flex-col gap-2 text-ink-soft">
               <li><a href="#projects" className="transition-colors hover:text-ink">Projects</a></li>
+              <li><a href="#programs" className="transition-colors hover:text-ink">Programs</a></li>
               <li><a href="#curriculum" className="transition-colors hover:text-ink">Curriculum</a></li>
               <li><a href="#tracks" className="transition-colors hover:text-ink">What You Learn</a></li>
               <li><a href="#faqs" className="transition-colors hover:text-ink">FAQs</a></li>
@@ -682,10 +642,12 @@ export function LandingPage() {
             <ul className="mt-3 flex flex-col gap-2 text-ink-soft">
               <li>
                 <Link href="/onboarding" onClick={() => goToOnboarding("footer_link")} className="transition-colors hover:text-ink">
-                  Join the waitlist
+                  Start registration
                 </Link>
               </li>
               <li><a href="mailto:hello@tekspyk.com" className="transition-colors hover:text-ink">hello@tekspyk.com</a></li>
+              <li><Link href="/terms" className="transition-colors hover:text-ink">Terms</Link></li>
+              <li><Link href="/privacy" className="transition-colors hover:text-ink">Privacy</Link></li>
             </ul>
           </nav>
         </div>

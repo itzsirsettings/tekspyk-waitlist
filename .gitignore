@@ -18,11 +18,14 @@ data/*.json
 data/*.jsonl
 
 # env files (keep templates)
-.env
-.env.local
-.env*.local
+.env*
 !.env.example
 !video/.env.example
+
+*.local.json
+test-results/
+playwright-report/
+.railway-secrets/
 
 # testing / coverage
 /coverage

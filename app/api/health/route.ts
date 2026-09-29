@@ -1,3 +1,11 @@
-export function GET() {
-  return Response.json({ status: "ok", service: "tekspyk-waitlist" });
+import { getDatabasePool } from "@/lib/database";
+
+export async function GET() {
+  try {
+    const schema = await getDatabasePool().query("SELECT 1 FROM schema_migrations WHERE filename = '006_admin_sessions_and_terms.sql'");
+    if (!schema.rowCount) throw new Error("Schema not ready");
+    return Response.json({ status: "ok" }, { headers: { "Cache-Control": "no-store" } });
+  } catch {
+    return Response.json({ status: "unavailable" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
 }

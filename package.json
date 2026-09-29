@@ -7,29 +7,40 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "db:migrate": "node scripts/migrate.js"
+    "db:migrate": "node scripts/migrate.mjs",
+    "db:seed:ai-foundations": "tsx scripts/seed-ai-foundations.ts",
+    "test:learning": "node scripts/test-learning.mjs"
   },
   "dependencies": {
+    "better-auth": "^1.7.6",
     "lucide-react": "^0.468.0",
-    "next": "16.2.10",
-    "nodemailer": "^9.0.3",
+    "next": "16.3.6",
+    "nodemailer": "^10.0.12",
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "^3.23.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/smtp-server": "3.5.13",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.3.6",
+    "smtp-server": "3.19.15",
     "tailwindcss": "^4",
+    "tsx": "4.20.6",
     "typescript": "^5",
-    "vitest": "^2.1.4"
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

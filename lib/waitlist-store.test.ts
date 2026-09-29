@@ -15,7 +15,7 @@ vi.mock("./email", () => ({
   sendAdminNotification: sendAdminNotificationMock,
 }));
 
-import { createWaitlistEntry } from "./waitlist-store";
+import { createWaitlistEntry, exportWaitlistCsv } from "./waitlist-store";
 
 const submission = {
   firstName: " Ada ",
@@ -28,6 +28,7 @@ const submission = {
   learningGoals: "Build faster with AI",
   referralCode: "",
   newsletter: true,
+  adultConfirmed: true,
   termsAccepted: true,
 };
 
@@ -51,5 +52,21 @@ describe("createWaitlistEntry", () => {
     queryMock.mockRejectedValueOnce({ code: "23505" });
 
     await expect(createWaitlistEntry(submission)).rejects.toThrow("This email is already on the waitlist.");
+  });
+
+  it("retains a persisted signup when email delivery fails", async () => {
+    sendWelcomeEmailMock.mockRejectedValueOnce(new Error("Provider unavailable"));
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const entry = await createWaitlistEntry(submission);
+    expect(entry.email).toBe("ada@example.com");
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("waitlist_email_failed"));
+    log.mockRestore();
+  });
+
+  it("neutralizes CSV formulas and escapes quotes in untrusted cells", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [{ id: "test", first_name: '=HYPERLINK("evil")', last_name: "Example", email: "test@example.test", phone: "+123", country: "GB", occupation: "Student", experience_level: "Beginner", learning_goals: "Learn", referral_code: null, newsletter: false, adult_confirmed: true, terms_accepted: true, status: "pending", created_at: new Date("2026-09-28"), updated_at: new Date("2026-09-28") }] });
+    const csv = await exportWaitlistCsv();
+    expect(csv).toContain(`"'=HYPERLINK(""evil"")"`);
+    expect(csv).toContain(`"'+123"`);
   });
 });

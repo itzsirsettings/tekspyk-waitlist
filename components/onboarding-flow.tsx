@@ -19,6 +19,8 @@ interface QuizOption {
 }
 
 const buildOptions: QuizOption[] = [
+  { emoji: "🖥️", label: "3-month Computer Training Program", description: "Computer fundamentals, digital literacy, Office, internet, and productivity." },
+  { emoji: "💻", label: "6-month Comprehensive Computer Training", description: "Professional computer skills across fundamentals, Office, design, coding, and cybersecurity." },
   { emoji: "🌐", label: "AI-powered web apps", description: "Full products people use in the browser, built with modern stacks." },
   { emoji: "📱", label: "Mobile apps", description: "iOS and Android products built with cross-platform tools." },
   { emoji: "🤖", label: "AI agents and automation", description: "Agents and workflows that do real work on their own." },
@@ -121,7 +123,8 @@ export function OnboardingFlow() {
   });
   const [contactErrors, setContactErrors] = useState<Partial<Record<keyof ContactFields, string>>>({});
   const [referralCode, setReferralCode] = useState("");
-  const [newsletter, setNewsletter] = useState(true);
+  const [newsletter, setNewsletter] = useState(false);
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
@@ -170,6 +173,11 @@ export function OnboardingFlow() {
     setConsentError(null);
     setSubmitError(null);
 
+    if (!adultConfirmed) {
+      setConsentError("You must confirm that you are 18 or older to sign up.");
+      return;
+    }
+
     if (!termsAccepted) {
       setConsentError("You must accept the terms and privacy policy to join.");
       return;
@@ -184,9 +192,10 @@ export function OnboardingFlow() {
       ...contact,
       occupation: occupation ?? "",
       experienceLevel: experienceLevel ?? "",
-      learningGoals: `I want to build ${buildChoice ?? "software"}. My main goal is to ${(goal ?? "level up my engineering skills").toLowerCase()}.`,
+      learningGoals: `I am interested in ${buildChoice ?? "learning technology"}. My main goal is to ${(goal ?? "level up my engineering skills").toLowerCase()}.`,
       referralCode: referralCode.trim(),
       newsletter,
+      adultConfirmed,
       termsAccepted,
     };
 
@@ -198,7 +207,7 @@ export function OnboardingFlow() {
 
     setIsSubmitting(true);
     try {
-      trackEvent("waitlist_submit_started", { email: payload.email });
+      trackEvent("registration_submit_started");
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -208,11 +217,11 @@ export function OnboardingFlow() {
       if (!response.ok) {
         throw new Error(body?.error || "Your signup could not be completed. Please try again.");
       }
-      trackEvent("waitlist_submit_succeeded", { email: payload.email });
-      router.push("/thank-you");
+      trackEvent("registration_submit_succeeded");
+      router.push("/sign-up");
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Please try again in a moment.");
-      trackEvent("waitlist_submit_failed", { message: String(error) });
+      trackEvent("registration_submit_failed");
       setIsSubmitting(false);
     }
   };
@@ -254,9 +263,9 @@ export function OnboardingFlow() {
           {step === "build" ? (
             <section aria-labelledby="q-build">
               <h1 id="q-build" className="text-[26px] leading-tight tracking-[-0.025em] sm:text-3xl">
-                What do you want to build first?
+                What would you like to learn first?
               </h1>
-              <p className="mt-2 text-ink-soft">Pick what excites you most. This shapes your learning path.</p>
+              <p className="mt-2 text-ink-soft">Choose a Computer Training program or an AI software-building path.</p>
               <div className="mt-8 flex flex-col gap-3">
                 {buildOptions.map((option) => (
                   <OptionButton
@@ -297,7 +306,7 @@ export function OnboardingFlow() {
               <p className="mx-auto mt-4 max-w-sm text-lg leading-8 text-ink-soft">
                 from AI fundamentals to deployment and monitoring, taught through real products you ship yourself.
               </p>
-              <p className="mt-8 font-semibold">Join builders from 40+ countries on the waitlist.</p>
+              <p className="mt-8 font-semibold">Share your learning interests with the TekSpyk team.</p>
               <button
                 type="button"
                 onClick={goForward}
@@ -348,9 +357,9 @@ export function OnboardingFlow() {
           {step === "contact" ? (
             <section aria-labelledby="q-contact">
               <h1 id="q-contact" className="text-[26px] leading-tight tracking-[-0.025em] sm:text-3xl">
-                Where should we send your invite?
+                TekSpyk registration request
               </h1>
-              <p className="mt-2 text-ink-soft">Waitlist members get first access when the founding cohort opens.</p>
+              <p className="mt-2 text-ink-soft">Add your details to submit a registration request. This form does not create a learner account. Email confirmations and product updates are not available yet.</p>
               <form
                 className="mt-8 flex flex-col gap-4"
                 onSubmit={(event) => {
@@ -456,6 +465,18 @@ export function OnboardingFlow() {
                   <label className="flex cursor-pointer items-start gap-3 text-sm leading-6">
                     <input
                       type="checkbox"
+                      checked={adultConfirmed}
+                      onChange={(event) => {
+                        setAdultConfirmed(event.target.checked);
+                        if (event.target.checked) setConsentError(null);
+                      }}
+                      className="mt-1 h-4 w-4 accent-[oklch(55%_0.22_262)]"
+                    />
+                    <span className="text-ink-soft">I confirm that I am 18 or older. Under-18 applicants cannot join until TekSpyk has an approved guardian-consent process.</span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-3 text-sm leading-6">
+                    <input
+                      type="checkbox"
                       checked={newsletter}
                       onChange={(event) => setNewsletter(event.target.checked)}
                       className="mt-1 h-4 w-4 accent-[oklch(55%_0.22_262)]"
@@ -472,7 +493,7 @@ export function OnboardingFlow() {
                       }}
                       className="mt-1 h-4 w-4 accent-[oklch(55%_0.22_262)]"
                     />
-                    <span className="text-ink-soft">I agree to the terms and privacy policy.</span>
+                    <span className="text-ink-soft">I agree to the <Link href="/terms" className="font-semibold text-blue underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">terms</Link> and <Link href="/privacy" className="font-semibold text-blue underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue">privacy policy</Link>.</span>
                   </label>
                   {consentError ? (
                     <p role="alert" className="text-sm font-medium text-pink">{consentError}</p>
@@ -492,11 +513,11 @@ export function OnboardingFlow() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Joining the waitlist
+                      Joining us
                     </>
                   ) : (
                     <>
-                      Join the Waitlist
+                      Submit request
                       <ArrowRight className="h-4 w-4" />
                     </>
                   )}
